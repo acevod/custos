@@ -1,10 +1,16 @@
 """
-Data puller for Bitget Reality Spot Stock API (rNVDA, rTSLA, rAAPL).
-Public endpoint, verified against official docs:
+Data puller for Bitget Reality Spot Stock API (rNVDA, rTSLA, rAAPL,
+rAMZN, rGOOGL). Public endpoint, verified against official docs:
 https://www.bitget.com/docs/catalog/market/market-data#get-tickers
 No API key required - the Ticker endpoint already includes bid1/ask1
-(top of book), so we don't need the separate Order Book endpoint
-(which is whitelist-only).
+(top of book) and volume24h in a single call.
+
+Symbol verification status (tested live via browser):
+  rNVDAUSDT  - confirmed
+  rAMZNUSDT  - confirmed
+  rGOOGLUSDT - confirmed
+  rTSLAUSDT, rAAPLUSDT - same naming convention, not individually
+  re-tested but low risk given rNVDA/rAMZN/rGOOGL all followed it.
 """
 
 import requests
@@ -16,6 +22,8 @@ SYMBOLS = {
     "NVDA": "rNVDAUSDT",
     "TSLA": "rTSLAUSDT",
     "AAPL": "rAAPLUSDT",
+    "AMZN": "rAMZNUSDT",
+    "GOOGL": "rGOOGLUSDT",
 }
 
 
@@ -30,17 +38,14 @@ def fetch_ticker(symbol: str) -> dict:
     return rows[0] if rows else {}
 
 
-def calculate_spread_pct(ticker: dict) -> float | None:
-    """Spread from bid1/ask1, already present directly in the ticker."""
-    try:
-        bid = float(ticker["bid1Price"])
-        ask = float(ticker["ask1Price"])
-        mid = (bid + ask) / 2
-        if mid == 0:
-            return None
-        return round((ask - bid) / mid * 100, 4)
-    except (KeyError, ValueError, TypeError, ZeroDivisionError):
+def calculate_spread_pct(bid: float | None, ask: float | None) -> float | None:
+    """Spread from bid/ask, as a percentage of mid price."""
+    if bid is None or ask is None:
         return None
+    mid = (bid + ask) / 2
+    if mid == 0:
+        return None
+    return round((ask - bid) / mid * 100, 4)
 
 
 def fetch_bitget_data() -> list[dict]:
@@ -55,17 +60,18 @@ def fetch_bitget_data() -> list[dict]:
             if not ticker:
                 raise ValueError("empty ticker response - symbol may be wrong or not listed")
 
-            spread = calculate_spread_pct(ticker)
+            bid = float(ticker.get("bid1Price", 0)) or None
+            ask = float(ticker.get("ask1Price", 0)) or None
 
             results.append({
                 "issuer": "bitget",
                 "underlying": underlying,
                 "symbol": symbol,
                 "price": float(ticker.get("lastPrice", 0)) or None,
-                "bid": float(ticker.get("bid1Price", 0)) or None,
-                "ask": float(ticker.get("ask1Price", 0)) or None,
+                "bid": bid,
+                "ask": ask,
                 "volume_24h": float(ticker.get("volume24h", 0)) or None,
-                "spread_pct": spread,
+                "spread_pct": calculate_spread_pct(bid, ask),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "bitget_api_v3",
                 "status": "ok",
@@ -86,6 +92,5 @@ def fetch_bitget_data() -> list[dict]:
 
 
 if __name__ == "__main__":
-    # Manual test: run this file directly to check the connection.
     import json
     print(json.dumps(fetch_bitget_data(), indent=2))
