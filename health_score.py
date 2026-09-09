@@ -1,18 +1,22 @@
 """
 Composite Health Score calculation for issuer risk monitoring.
 
+Now that all three issuers (Bitget, Binance, Bybit-xStocks) are
+sourced from standard exchange order books, every issuer has the
+same shape of data (price, bid, ask, volume) - no proxy metrics
+needed anymore.
+
 Score is a weighted combination of:
-  1. Premium/Discount  (30%) - how far issuer price deviates from
-                               the cross-issuer reference price
-  2. Spread             (25%) - bid/ask spread (Bitget: real,
-                               xStocks: volatility-based proxy)
-  3. Flow Trend          (20%) - Bitget: trading volume vs baseline.
-                               xStocks: circulating-supply change vs
-                               baseline (proxy for redemption flow,
-                               since the public API has no volume field)
+  1. Premium/Discount (30%) - how far an issuer's price deviates
+                              from the cross-issuer consensus
+                              (median) price
+  2. Spread             (25%) - real bid/ask spread, same formula
+                              for all three issuers
+  3. Volume Trend        (20%) - current volume vs its own recent
+                              baseline, same formula for all three
   4. Weekend/After-Hours (15%) - flags reduced-liquidity windows
   5. Sentiment            (10%) - optional, supplied externally from
-                               the bitget-signal news/sentiment skills
+                              the bitget-signal news/sentiment skills
 
 All component scores are normalized to 0.0 (unhealthy) - 1.0 (healthy).
 Weights and thresholds here are heuristic / manually tuned, not the
@@ -21,42 +25,42 @@ write-up rather than presented as a validated model.
 """
 
 from datetime import datetime, timezone
-from statistics import mean, stdev
+from statistics import mean, median
 
 WEIGHTS = {
     "premium_discount": 0.30,
     "spread": 0.25,
-    # "flow_trend" is trading volume for Bitget, circulating-supply
-    # change for xStocks - same weight slot, different underlying
-    # metric per issuer (see score_volume_trend / score_supply_flow).
-    "flow_trend": 0.20,
+    "volume_trend": 0.20,
     "weekend": 0.15,
     "sentiment": 0.10,
 }
 
-# How many recent history points to use for the xStocks volatility
-# proxy and for the Bitget volume baseline.
-HISTORY_WINDOW = 20
+HISTORY_WINDOW = 20  # how many recent points used for volume baseline
 
 
 # ── Component 1: Premium / Discount ───────────────────────────
 
-def score_premium_discount(bitget_price: float | None, xstocks_price: float | None) -> float | None:
+def calculate_consensus_price(issuer_prices: dict[str, float | None]) -> float | None:
     """
-    Since we don't pull an independent 'ground truth' NVDA price,
-    the two issuer prices are compared against each other as the
-    reference. Large deviation between them = one side is mispriced
-    relative to the other, which is itself a health signal.
-    Returns None if either price is missing.
+    With 3+ issuers, 'reference price' is the median across all
+    issuers currently reporting a valid price - more robust than
+    picking one issuer arbitrarily as ground truth, and more robust
+    than a mean (a single outlier issuer can't drag the consensus).
     """
-    if bitget_price is None or xstocks_price is None:
+    valid = [p for p in issuer_prices.values() if p is not None]
+    if not valid:
         return None
-    mid = (bitget_price + xstocks_price) / 2
-    if mid == 0:
-        return None
-    deviation_pct = abs(bitget_price - xstocks_price) / mid * 100
+    return median(valid)
 
-    # Heuristic curve: 0% deviation -> score 1.0, 2%+ deviation -> score ~0
+
+def score_premium_discount(issuer_price: float | None, consensus_price: float | None) -> float | None:
+    """
+    Deviation of one issuer's price from the cross-issuer consensus.
+    Heuristic curve: 0% deviation -> score 1.0, 2%+ deviation -> ~0.
+    """
+    if issuer_price is None or consensus_price is None or consensus_price == 0:
+        return None
+    deviation_pct = abs(issuer_price - consensus_price) / consensus_price * 100
     score = max(0.0, 1.0 - (deviation_pct / 2.0))
     return round(score, 4)
 
@@ -65,8 +69,8 @@ def score_premium_discount(bitget_price: float | None, xstocks_price: float | No
 
 def score_spread(spread_pct: float | None) -> float | None:
     """
-    Direct spread score (used for Bitget, which has real bid/ask).
     Heuristic curve: 0% spread -> 1.0, 1%+ spread -> ~0.
+    Same formula for all three issuers now (all have real bid/ask).
     """
     if spread_pct is None:
         return None
@@ -74,31 +78,13 @@ def score_spread(spread_pct: float | None) -> float | None:
     return round(score, 4)
 
 
-def calculate_volatility_proxy(price_history: list[float]) -> float | None:
-    """
-    Substitute for xStocks spread, since public API has no bid/ask.
-    Uses coefficient of variation (stdev / mean) of recent prices as
-    a rough liquidity-stress signal - the reasoning being that
-    degraded liquidity tends to show up as increased short-term price
-    noise, not just a wider bid/ask. This is an approximation, not a
-    direct measurement, and is documented as such in the write-up.
-    Needs at least 3 data points to be meaningful.
-    """
-    if len(price_history) < 3:
-        return None
-    m = mean(price_history)
-    if m == 0:
-        return None
-    cv_pct = (stdev(price_history) / m) * 100
-    return round(cv_pct, 4)
-
-
-# ── Component 3: Flow Trend (volume for Bitget, supply for xStocks) ──
+# ── Component 3: Volume Trend ─────────────────────────────────
 
 def score_volume_trend(current_volume: float | None, volume_history: list[float]) -> float | None:
     """
-    Bitget-specific: compares current trading volume against the mean
-    of recent history. A sharp drop vs baseline is a liquidity warning.
+    Compares current volume against the mean of recent history.
+    A sharp drop vs baseline is treated as a liquidity warning sign.
+    Same formula for all three issuers now.
     """
     if current_volume is None or len(volume_history) < 3:
         return None
@@ -113,40 +99,15 @@ def score_volume_trend(current_volume: float | None, volume_history: list[float]
     return round(score, 4)
 
 
-def score_supply_flow(current_supply: float | None, supply_history: list[float]) -> float | None:
-    """
-    xStocks-specific substitute for volume_trend, since the public API
-    has no trading-volume field. Circulating supply rises on mint and
-    falls on redeem, so this measures how much supply has shrunk
-    relative to its recent baseline - a direct proxy for redemption
-    pressure, which is arguably closer to what we actually care about
-    (issuer/counterparty risk) than raw trading volume would be.
-
-    Only the downside (supply shrinking) is treated as a risk signal;
-    supply growing (more minting) scores as healthy/neutral.
-    """
-    if current_supply is None or len(supply_history) < 3:
-        return None
-    baseline = mean(supply_history)
-    if baseline == 0:
-        return None
-    ratio = current_supply / baseline
-
-    # ratio >= 1.0 (supply stable or growing) -> score 1.0
-    # ratio dropping below 1.0 (net redemptions) -> score drops
-    score = min(1.0, max(0.0, ratio))
-    return round(score, 4)
-
-
 # ── Component 4: Weekend / After-Hours ────────────────────────
 
 def score_weekend_afterhours(timestamp: datetime) -> float:
     """
     Flags reduced-liquidity windows. This does not fail the score
     outright - it lowers it slightly to reflect thinner backing
-    liquidity during these windows, per Bitget's own disclosure that
-    weekend/after-hours liquidity is internally supplied and behaves
-    differently from regular market-hours routing to NASDAQ/NYSE.
+    liquidity during these windows (issuers typically supply
+    weekend/after-hours liquidity internally rather than routing to
+    NASDAQ/NYSE, which behaves differently from regular market hours).
 
     Simplified UTC-based check - does not account for US market
     holidays or DST transitions precisely; good enough as a
@@ -208,39 +169,57 @@ def classify_score(score: float | None) -> str:
     return "red_flag"
 
 
+def score_all_issuers(
+    issuer_data: dict[str, dict],
+    volume_histories: dict[str, list[float]],
+    now: datetime,
+) -> dict[str, dict]:
+    """
+    Convenience wrapper: scores every issuer for one underlying stock
+    in a single call, sharing the same consensus price across all of
+    them.
+
+    issuer_data: {"bitget": {"price":.., "spread_pct":.., "volume_24h":..}, ...}
+    volume_histories: {"bitget": [recent volumes...], ...}
+    """
+    consensus_price = calculate_consensus_price(
+        {name: d.get("price") for name, d in issuer_data.items()}
+    )
+
+    results = {}
+    for issuer_name, data in issuer_data.items():
+        components = {
+            "premium_discount": score_premium_discount(data.get("price"), consensus_price),
+            "spread": score_spread(data.get("spread_pct")),
+            "volume_trend": score_volume_trend(
+                data.get("volume_24h"), volume_histories.get(issuer_name, [])
+            ),
+            "weekend": score_weekend_afterhours(now),
+            "sentiment": data.get("sentiment_score"),  # wired in later from LLM layer
+        }
+        result = calculate_composite_score(components)
+        result["label"] = classify_score(result["score"])
+        results[issuer_name] = result
+
+    return results
+
+
 if __name__ == "__main__":
-    # Manual smoke test with fabricated numbers.
     import json
 
     now = datetime.now(timezone.utc)
 
-    bitget_price = 224.75
-    xstocks_price = 224.68
-    fake_price_history = [224.1, 224.3, 224.5, 224.68, 224.2]
-    fake_volume_history = [70_000_000, 75_000_000, 80_000_000]
-    fake_supply_history = [10_000_000, 10_050_000, 10_020_000]
-
-    print("--- Bitget composite (uses trading volume) ---")
-    bitget_components = {
-        "premium_discount": score_premium_discount(bitget_price, xstocks_price),
-        "spread": score_spread(0.067),  # from Bitget bid/ask example
-        "flow_trend": score_volume_trend(77_826_397, fake_volume_history),
-        "weekend": score_weekend_afterhours(now),
-        "sentiment": None,  # not wired up yet - comes from LLM layer
+    # Fabricated example: 3 issuers reporting on the same underlying (NVDA)
+    issuer_data = {
+        "bitget": {"price": 224.75, "spread_pct": 0.067, "volume_24h": 77_826_397},
+        "binance": {"price": 224.60, "spread_pct": 0.05, "volume_24h": 12_500_000},
+        "bybit_xstocks": {"price": 224.68, "spread_pct": 0.08, "volume_24h": 9_800_000},
     }
-    bitget_result = calculate_composite_score(bitget_components)
-    bitget_result["label"] = classify_score(bitget_result["score"])
-    print(json.dumps(bitget_result, indent=2))
-
-    print("\n--- xStocks composite (uses circulating supply proxy) ---")
-    xstocks_spread_proxy_pct = calculate_volatility_proxy(fake_price_history)
-    xstocks_components = {
-        "premium_discount": score_premium_discount(bitget_price, xstocks_price),
-        "spread": score_spread(xstocks_spread_proxy_pct),
-        "flow_trend": score_supply_flow(9_950_000, fake_supply_history),
-        "weekend": score_weekend_afterhours(now),
-        "sentiment": None,
+    volume_histories = {
+        "bitget": [70_000_000, 75_000_000, 80_000_000],
+        "binance": [11_000_000, 12_000_000, 13_000_000],
+        "bybit_xstocks": [9_000_000, 9_500_000, 10_000_000],
     }
-    xstocks_result = calculate_composite_score(xstocks_components)
-    xstocks_result["label"] = classify_score(xstocks_result["score"])
-    print(json.dumps(xstocks_result, indent=2))
+
+    results = score_all_issuers(issuer_data, volume_histories, now)
+    print(json.dumps(results, indent=2))
