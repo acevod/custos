@@ -43,6 +43,22 @@ def fetch_asset_info(symbol: str) -> dict:
     return resp.json()
 
 
+def fetch_circulating_supply(symbol: str) -> float | None:
+    """
+    xStocks has no public trading-volume field, so circulating supply
+    is used as a flow/liquidity proxy instead: supply rises on mint
+    and falls on redeem, so a sharp supply drop is a direct signal of
+    redemption activity - arguably more relevant to issuer risk than
+    trading volume would be anyway.
+    """
+    url = f"{BASE_URL}/public/assets/{symbol}/circulating-supply"
+    resp = requests.get(url, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    value = data.get("circulatingSupply") or data.get("supply")
+    return float(value) if value is not None else None
+
+
 def fetch_xstocks_data() -> list[dict]:
     """
     Main entry point - called from the central data puller.
@@ -66,12 +82,19 @@ def fetch_xstocks_data() -> list[dict]:
             except Exception:
                 pass
 
+            circulating_supply = None
+            try:
+                circulating_supply = fetch_circulating_supply(symbol)
+            except Exception:
+                pass
+
             results.append({
                 "issuer": "xstocks",
                 "underlying": underlying,
                 "symbol": symbol,
                 "price": float(quote),
                 "spread_pct": None,  # computed from history, not real-time
+                "circulating_supply": circulating_supply,  # flow/liquidity proxy
                 "trading_halted": trading_halted,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "xstocks_api_v2",
