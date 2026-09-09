@@ -35,7 +35,7 @@ from datetime import datetime, timezone
 from fetch_bitget import fetch_bitget_data
 from fetch_binance import fetch_binance_data
 from fetch_bybit import fetch_bybit_data
-from health_score import score_all_issuers, HISTORY_WINDOW, classify_score
+from health_score import score_all_issuers, HISTORY_WINDOW
 from llm_client import call_llm
 
 DATA_DIR = "data"
