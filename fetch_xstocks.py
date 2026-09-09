@@ -1,14 +1,7 @@
 """
-Data puller for xStocks (Backed Finance) public API.
-Endpoint verified against official docs:
-https://docs.xstocks.fi/apis/openapi/assets
-No API key required for public endpoints.
+Data puller for xStocks (Backed Finance) public API. Endpoint verified against official docs: https://docs.xstocks.fi/apis/openapi/assets. No API key required for public endpoints.
 
-IMPORTANT NOTE: the price-data endpoint only returns a single quote
-number, no bid/ask. The mint/redeem spread (xChange RFQ) is an
-authenticated endpoint that requires a Backed client account - not
-used here. Instead, a "spread proxy" is computed downstream from
-our own stored price history (short-term volatility).
+IMPORTANT NOTE: the price-data endpoint only returns a single quote number, no bid/ask. The mint/redeem spread (xChange RFQ) is an authenticated endpoint that requires a Backed client account - not used here. Instead, a "spread proxy" is computed downstream from our own stored price history (short-term volatility).
 """
 
 import requests
@@ -34,8 +27,7 @@ def fetch_price(symbol: str) -> dict:
 
 def fetch_asset_info(symbol: str) -> dict:
     """
-    Optional: extra info (trading status, etc.) from the
-    'Get Asset by Symbol' endpoint. Useful for checking isTradingHalted.
+    Optional: extra info (trading status, etc.) from the 'Get Asset by Symbol' endpoint. Useful for checking isTradingHalted.
     """
     url = f"{BASE_URL}/public/assets/{symbol}"
     resp = requests.get(url, timeout=10)
@@ -45,11 +37,7 @@ def fetch_asset_info(symbol: str) -> dict:
 
 def fetch_circulating_supply(symbol: str) -> float | None:
     """
-    xStocks has no public trading-volume field, so circulating supply
-    is used as a flow/liquidity proxy instead: supply rises on mint
-    and falls on redeem, so a sharp supply drop is a direct signal of
-    redemption activity - arguably more relevant to issuer risk than
-    trading volume would be anyway.
+    xStocks has no public trading-volume field, so circulating supply is used as a flow/liquidity proxy instead: supply rises on mint and falls on redeem, so a sharp supply drop is a direct signal of redemption activity - arguably more relevant to issuer risk than trading volume would be anyway.
     """
     url = f"{BASE_URL}/public/assets/{symbol}/circulating-supply"
     resp = requests.get(url, timeout=10)
@@ -61,10 +49,7 @@ def fetch_circulating_supply(symbol: str) -> float | None:
 
 def fetch_xstocks_data() -> list[dict]:
     """
-    Main entry point - called from the central data puller.
-    Returns a list of dicts, one entry per underlying stock.
-    spread_pct is intentionally None here - it gets computed
-    separately in health_score.py from price history (volatility proxy).
+    Main entry point - called from the central data puller. Returns a list of dicts, one entry per underlying stock. spread_pct is intentionally None here - it gets computed separately in health_score.py from price history (volatility proxy).
     """
     results = []
     for underlying, symbol in SYMBOLS.items():
