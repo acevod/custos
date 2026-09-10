@@ -33,7 +33,6 @@ jobs:
           QWEN_BITGET_BASE_URL: ${{ secrets.QWEN_BITGET_BASE_URL }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          BYBIT_PROXY_BASE_URL: ${{ secrets.BYBIT_PROXY_BASE_URL }}
         run: python main.py
 
       - name: Commit and push updated data
