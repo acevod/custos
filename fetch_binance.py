@@ -1,9 +1,13 @@
 """
 Data puller for Binance bStocks (NVDAB, TSLAB, AAPLB, AMZNB).
 Issued by BTech Holdings Limited, a Binance affiliate, on BNB Chain.
-Public endpoint: https://api.binance.com/api/v3/ticker/24hr
-No API key required. This single endpoint gives price, bid/ask, and
-volume together, unlike /ticker/bookTicker which omits volume.
+Public endpoint: https://data-api.binance.vision/api/v3/ticker/24hr
+No API key required. IMPORTANT: this uses Binance's dedicated public
+market-data mirror, NOT api.binance.com - the main domain returns
+HTTP 451 (geo-blocked) from many cloud/datacenter IPs, including
+GitHub Actions runners. data-api.binance.vision is officially
+documented by Binance specifically for public (no-auth) market data
+and does not carry the same restriction.
 
 Symbol verification status (tested live via browser):
   NVDABUSDT  - confirmed (includes volume via /ticker/24hr)
@@ -16,7 +20,7 @@ Symbol verification status (tested live via browser):
 import requests
 from datetime import datetime, timezone
 
-BASE_URL = "https://api.binance.com/api/v3"
+BASE_URL = "https://data-api.binance.vision/api/v3"
 
 SYMBOLS = {
     "NVDA": "NVDABUSDT",
