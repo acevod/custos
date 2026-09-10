@@ -1,0 +1,50 @@
+name: Data Pull and Health Check
+
+# Runs automatically every 15 minutes, and can also be triggered
+# manually from the Actions tab (useful for testing).
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+# Needed so this workflow can commit the updated data/ files back
+# to the repo using the default GITHUB_TOKEN.
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run main.py
+        env:
+          QWEN_BITGET_API_KEY: ${{ secrets.QWEN_BITGET_API_KEY }}
+          QWEN_BITGET_BASE_URL: ${{ secrets.QWEN_BITGET_BASE_URL }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python main.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          # Only commit if something actually changed - an empty
+          # commit would fail the step and break the schedule.
+          if git diff --staged --quiet; then
+            echo "No data changes to commit."
+          else
+            git commit -m "Update monitoring data [automated]"
+            git push
+          fi
