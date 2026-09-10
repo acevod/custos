@@ -2,7 +2,7 @@
 Main orchestrator for the Custos issuer health monitoring system.
 
 Run this on a schedule (every 15 min via GitHub Actions). Each run:
-  1. Pulls fresh data from all 3 issuers (Bitget, Binance, Bybit-xStocks)
+  1. Pulls fresh data from all 3 issuers (Bitget, Binance, OKX-xStocks)
   2. Updates rolling volume history (used as the volume_trend baseline)
   3. Computes a composite Health Score per issuer per stock
   4. Appends to the heartbeat log (always - this is what proves the
@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 
 from fetch_bitget import fetch_bitget_data
 from fetch_binance import fetch_binance_data
-from fetch_bybit import fetch_bybit_data
+from fetch_okx import fetch_okx_data
 from health_score import score_all_issuers, HISTORY_WINDOW
 from llm_client import call_llm
 
@@ -47,7 +47,7 @@ TRANSACTION_LOG_PATH = f"{DATA_DIR}/transaction_log.jsonl"
 LATEST_PATH = f"{DATA_DIR}/latest.json"
 
 STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL"]
-ISSUERS = ["bitget", "binance", "bybit_xstocks"]
+ISSUERS = ["bitget", "binance", "okx"]
 
 INITIAL_EXPOSURE_PER_ISSUER = 300.0  # clean number, per issuer per stock
 # -> $900 per stock (3 issuers), $4,500 total portfolio (5 stocks) -
@@ -100,7 +100,7 @@ def init_positions() -> dict:
 
 def collect_all_issuer_data() -> dict:
     """
-    Returns: { "NVDA": {"bitget": {...}, "binance": {...}, "bybit_xstocks": {...}}, ... }
+    Returns: { "NVDA": {"bitget": {...}, "binance": {...}, "okx": {...}}, ... }
     Each fetcher already handles its own per-symbol errors, so a
     single failed issuer/stock shows up as status="error" rather
     than crashing the whole run.
@@ -108,7 +108,7 @@ def collect_all_issuer_data() -> dict:
     raw = {
         "bitget": fetch_bitget_data(),
         "binance": fetch_binance_data(),
-        "bybit_xstocks": fetch_bybit_data(),
+        "okx": fetch_okx_data(),
     }
 
     by_stock = {stock: {} for stock in STOCKS}
