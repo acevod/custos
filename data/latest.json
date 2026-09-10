@@ -1,0 +1,268 @@
+{
+  "timestamp": "2026-09-10T12:51:32.791152+00:00",
+  "scores": {
+    "NVDA": {
+      "bitget": {
+        "score": 0.9377,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.9456,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651406+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9526,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9932,
+          "spread": 0.9955,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651419+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.9358,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9615,
+          "spread": 0.9864,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651428+00:00",
+        "label": "healthy"
+      }
+    },
+    "TSLA": {
+      "bitget": {
+        "score": 0.9338,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9917,
+          "spread": 0.9445,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651452+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9504,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9889,
+          "spread": 0.9945,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651460+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.9482,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.975,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651467+00:00",
+        "label": "healthy"
+      }
+    },
+    "AAPL": {
+      "bitget": {
+        "score": 0.9436,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.9622,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651491+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.951,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9937,
+          "spread": 0.9905,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651506+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.9492,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.9779,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651516+00:00",
+        "label": "healthy"
+      }
+    },
+    "AMZN": {
+      "bitget": {
+        "score": 0.9469,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.996,
+          "spread": 0.9761,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651535+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9329,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.9322,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651542+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.938,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.982,
+          "spread": 0.9681,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651549+00:00",
+        "label": "healthy"
+      }
+    },
+    "GOOGL": {
+      "bitget": {
+        "score": 0.9246,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9696,
+          "spread": 0.9453,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651564+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9561,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 1.0,
+          "spread": 0.997,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651571+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.9428,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9894,
+          "spread": 0.9727,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:51:36.651577+00:00",
+        "label": "healthy"
+      }
+    }
+  },
+  "positions": {
+    "NVDA": {
+      "bitget": 300.0,
+      "binance": 300.0,
+      "okx": 300.0
+    },
+    "TSLA": {
+      "bitget": 300.0,
+      "binance": 300.0,
+      "okx": 300.0
+    },
+    "AAPL": {
+      "bitget": 300.0,
+      "binance": 300.0,
+      "okx": 300.0
+    },
+    "AMZN": {
+      "bitget": 300.0,
+      "binance": 300.0,
+      "okx": 300.0
+    },
+    "GOOGL": {
+      "bitget": 300.0,
+      "binance": 300.0,
+      "okx": 300.0
+    }
+  },
+  "events_this_run": []
+}

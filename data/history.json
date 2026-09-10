@@ -1,0 +1,47 @@
+{
+  "bitget:NVDA": [
+    57775711.8419
+  ],
+  "binance:NVDA": [
+    20924.595
+  ],
+  "okx:NVDA": [
+    2840.42848
+  ],
+  "bitget:TSLA": [
+    17031318.8969
+  ],
+  "binance:TSLA": [
+    5594.619
+  ],
+  "okx:TSLA": [
+    4224.84612
+  ],
+  "bitget:AAPL": [
+    60648843.5454
+  ],
+  "binance:AAPL": [
+    7650.346
+  ],
+  "okx:AAPL": [
+    6616.67155
+  ],
+  "bitget:AMZN": [
+    21367544.0903
+  ],
+  "binance:AMZN": [
+    505.501
+  ],
+  "okx:AMZN": [
+    563.22102
+  ],
+  "bitget:GOOGL": [
+    21844933.3702
+  ],
+  "binance:GOOGL": [
+    5453.979
+  ],
+  "okx:GOOGL": [
+    3851.49178
+  ]
+}
