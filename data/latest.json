@@ -1,31 +1,37 @@
 {
-  "timestamp": "2026-09-10T07:55:17.113421+00:00",
+  "timestamp": "2026-09-10T08:02:38.455432+00:00",
   "scores": {
     "NVDA": {
       "bitget": {
-        "score": 0.9443,
+        "score": 0.9433,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9933,
+          "spread": 0.9238,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T08:02:43.647802+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9527,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.9641,
+          "premium_discount": 0.9933,
+          "spread": 0.9955,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860416+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.8,
-        "components_used": [
-          "weekend"
-        ],
-        "components_raw": {
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T07:55:18.860431+00:00",
+        "timestamp": "2026-09-10T08:02:43.647816+00:00",
         "label": "healthy"
       },
       "bybit_xstocks": {
@@ -36,35 +42,41 @@
         "components_raw": {
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860439+00:00",
+        "timestamp": "2026-09-10T08:02:43.647821+00:00",
         "label": "healthy"
       }
     },
     "TSLA": {
       "bitget": {
-        "score": 0.9357,
+        "score": 0.9405,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9966,
+          "spread": 0.91,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T08:02:43.647860+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9508,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.94,
+          "premium_discount": 0.9966,
+          "spread": 0.9864,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860465+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.8,
-        "components_used": [
-          "weekend"
-        ],
-        "components_raw": {
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T07:55:18.860472+00:00",
+        "timestamp": "2026-09-10T08:02:43.647867+00:00",
         "label": "healthy"
       },
       "bybit_xstocks": {
@@ -75,35 +87,41 @@
         "components_raw": {
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860477+00:00",
+        "timestamp": "2026-09-10T08:02:43.647872+00:00",
         "label": "healthy"
       }
     },
     "AAPL": {
       "bitget": {
-        "score": 0.9481,
+        "score": 0.9439,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9843,
+          "spread": 0.937,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T08:02:43.647917+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9482,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.9748,
+          "premium_discount": 0.9843,
+          "spread": 0.9937,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860503+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.8,
-        "components_used": [
-          "weekend"
-        ],
-        "components_raw": {
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T07:55:18.860514+00:00",
+        "timestamp": "2026-09-10T08:02:43.647928+00:00",
         "label": "healthy"
       },
       "bybit_xstocks": {
@@ -114,35 +132,41 @@
         "components_raw": {
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860521+00:00",
+        "timestamp": "2026-09-10T08:02:43.647934+00:00",
         "label": "healthy"
       }
     },
     "AMZN": {
       "bitget": {
-        "score": 0.9486,
+        "score": 0.9349,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9674,
+          "spread": 0.9248,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T08:02:43.647966+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9206,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.9762,
+          "premium_discount": 0.9674,
+          "spread": 0.9367,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860543+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.8,
-        "components_used": [
-          "weekend"
-        ],
-        "components_raw": {
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T07:55:18.860549+00:00",
+        "timestamp": "2026-09-10T08:02:43.647972+00:00",
         "label": "healthy"
       },
       "bybit_xstocks": {
@@ -153,35 +177,41 @@
         "components_raw": {
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860554+00:00",
+        "timestamp": "2026-09-10T08:02:43.647976+00:00",
         "label": "healthy"
       }
     },
     "GOOGL": {
       "bitget": {
-        "score": 0.9517,
+        "score": 0.9455,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9917,
+          "spread": 0.9336,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T08:02:43.648000+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9525,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.9849,
+          "premium_discount": 0.9917,
+          "spread": 0.997,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860572+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.8,
-        "components_used": [
-          "weekend"
-        ],
-        "components_raw": {
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T07:55:18.860578+00:00",
+        "timestamp": "2026-09-10T08:02:43.648006+00:00",
         "label": "healthy"
       },
       "bybit_xstocks": {
@@ -192,7 +222,7 @@
         "components_raw": {
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T07:55:18.860582+00:00",
+        "timestamp": "2026-09-10T08:02:43.648010+00:00",
         "label": "healthy"
       }
     }
