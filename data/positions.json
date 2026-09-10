@@ -1,0 +1,27 @@
+{
+  "NVDA": {
+    "bitget": 300.0,
+    "binance": 300.0,
+    "bybit_xstocks": 300.0
+  },
+  "TSLA": {
+    "bitget": 300.0,
+    "binance": 300.0,
+    "bybit_xstocks": 300.0
+  },
+  "AAPL": {
+    "bitget": 300.0,
+    "binance": 300.0,
+    "bybit_xstocks": 300.0
+  },
+  "AMZN": {
+    "bitget": 300.0,
+    "binance": 300.0,
+    "bybit_xstocks": 300.0
+  },
+  "GOOGL": {
+    "bitget": 300.0,
+    "binance": 300.0,
+    "bybit_xstocks": 300.0
+  }
+}

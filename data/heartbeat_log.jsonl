@@ -1,0 +1,5 @@
+{"timestamp": "2026-09-10T07:45:42.196253+00:00", "instrument": "NVDA", "scores": {"bitget": 0.9507, "binance": 0.8, "bybit_xstocks": 0.8}, "labels": {"bitget": "healthy", "binance": "healthy", "bybit_xstocks": "healthy"}}
+{"timestamp": "2026-09-10T07:45:42.196253+00:00", "instrument": "TSLA", "scores": {"bitget": 0.925, "binance": 0.8, "bybit_xstocks": 0.8}, "labels": {"bitget": "healthy", "binance": "healthy", "bybit_xstocks": "healthy"}}
+{"timestamp": "2026-09-10T07:45:42.196253+00:00", "instrument": "AAPL", "scores": {"bitget": 0.9481, "binance": 0.8, "bybit_xstocks": 0.8}, "labels": {"bitget": "healthy", "binance": "healthy", "bybit_xstocks": "healthy"}}
+{"timestamp": "2026-09-10T07:45:42.196253+00:00", "instrument": "AMZN", "scores": {"bitget": 0.9458, "binance": 0.8, "bybit_xstocks": 0.8}, "labels": {"bitget": "healthy", "binance": "healthy", "bybit_xstocks": "healthy"}}
+{"timestamp": "2026-09-10T07:45:42.196253+00:00", "instrument": "GOOGL", "scores": {"bitget": 0.9453, "binance": 0.8, "bybit_xstocks": 0.8}, "labels": {"bitget": "healthy", "binance": "healthy", "bybit_xstocks": "healthy"}}
