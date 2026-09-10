@@ -1,7 +1,7 @@
 """
 Composite Health Score calculation for issuer risk monitoring.
 
-Now that all three issuers (Bitget, Binance, Bybit-xStocks) are
+Now that all three issuers (Bitget, Binance, OKX-xStocks) are
 sourced from standard exchange order books, every issuer has the
 same shape of data (price, bid, ask, volume) - no proxy metrics
 needed anymore.
@@ -213,12 +213,12 @@ if __name__ == "__main__":
     issuer_data = {
         "bitget": {"price": 224.75, "spread_pct": 0.067, "volume_24h": 77_826_397},
         "binance": {"price": 224.60, "spread_pct": 0.05, "volume_24h": 12_500_000},
-        "bybit_xstocks": {"price": 224.68, "spread_pct": 0.08, "volume_24h": 9_800_000},
+        "okx": {"price": 224.68, "spread_pct": 0.08, "volume_24h": 9_800_000},
     }
     volume_histories = {
         "bitget": [70_000_000, 75_000_000, 80_000_000],
         "binance": [11_000_000, 12_000_000, 13_000_000],
-        "bybit_xstocks": [9_000_000, 9_500_000, 10_000_000],
+        "okx": [9_000_000, 9_500_000, 10_000_000],
     }
 
     results = score_all_issuers(issuer_data, volume_histories, now)
