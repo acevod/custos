@@ -7,7 +7,16 @@ xStocks' own API which only returns a single price with no spread
 or volume data.
 
 Public endpoint: https://api.bybit.com/v5/market/tickers
-No API key required.
+No API key required for the data itself. HOWEVER: Bybit blocks
+requests from many cloud/datacenter IPs (including GitHub Actions
+runners) with a 403 at the CDN level - this is a network-level
+block, not an auth issue. To work around it, requests are routed
+through a Cloudflare Worker reverse proxy (see
+cloudflare-worker-bybit-proxy.js) whenever BYBIT_PROXY_BASE_URL is
+set. If that env var is not set, this falls back to calling Bybit
+directly - useful for local testing from a non-blocked IP (e.g. a
+home connection), but will likely fail with 403 when run from
+GitHub Actions unless the proxy is configured.
 
 Symbol verification status:
   All 5 (NVDAX, TSLAX, AAPLX, AMZNX, GOOGLX) confirmed via Bybit's
@@ -16,10 +25,13 @@ Symbol verification status:
   was dropped from the 5-stock lineup in favor of GOOGL.
 """
 
+import os
 import requests
 from datetime import datetime, timezone
 
-BASE_URL = "https://api.bybit.com/v5/market"
+_PROXY_BASE = os.environ.get("BYBIT_PROXY_BASE_URL")  # e.g. https://custos-bybit-proxy.<user>.workers.dev
+_DIRECT_BASE = "https://api.bybit.com"
+BASE_URL = f"{(_PROXY_BASE or _DIRECT_BASE).rstrip('/')}/v5/market"
 
 SYMBOLS = {
     "NVDA": "NVDAXUSDT",
