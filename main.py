@@ -261,11 +261,21 @@ def run():
         scores = score_all_issuers(issuer_entries, volume_histories, now)
         all_scores[stock] = scores
 
+        # Surface any fetch errors so failures are visible in the repo
+        # instead of silently disappearing - this is what we check
+        # when an issuer's score looks suspiciously flat/empty.
+        errors = {
+            issuer: entry.get("error")
+            for issuer, entry in issuer_entries.items()
+            if entry.get("status") == "error"
+        }
+
         heartbeat_entries.append({
             "timestamp": now.isoformat(),
             "instrument": stock,
             "scores": {name: r["score"] for name, r in scores.items()},
             "labels": {name: r["label"] for name, r in scores.items()},
+            "errors": errors if errors else None,
         })
 
         # Check whether the issuer currently holding exposure needs rotating
