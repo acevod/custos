@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-09-10T09:39:09.222738+00:00",
+  "timestamp": "2026-09-10T12:23:29.873167+00:00",
   "scores": {
     "NVDA": {
       "bitget": {
-        "score": 0.9497,
+        "score": 0.9554,
         "components_used": [
           "premium_discount",
           "spread",
@@ -11,16 +11,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9754,
-          "spread": 0.9686,
+          "premium_discount": 1.0,
+          "spread": 0.9594,
           "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135137+00:00",
+        "timestamp": "2026-09-10T12:23:34.771442+00:00",
         "label": "healthy"
       },
       "binance": {
-        "score": 0.9582,
+        "score": 0.9654,
         "components_used": [
           "premium_discount",
           "spread",
@@ -28,16 +28,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9821,
-          "spread": 0.991,
+          "premium_discount": 1.0,
+          "spread": 0.9955,
           "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135185+00:00",
+        "timestamp": "2026-09-10T12:23:34.771491+00:00",
         "label": "healthy"
       },
       "okx": {
-        "score": 0.9459,
+        "score": 0.9523,
         "components_used": [
           "premium_discount",
           "spread",
@@ -45,16 +45,16 @@
         ],
         "components_raw": {
           "premium_discount": 1.0,
-          "spread": 0.9686,
+          "spread": 0.9865,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135196+00:00",
+        "timestamp": "2026-09-10T12:23:34.771502+00:00",
         "label": "healthy"
       }
     },
     "TSLA": {
       "bitget": {
-        "score": 0.939,
+        "score": 0.9599,
         "components_used": [
           "premium_discount",
           "spread",
@@ -62,16 +62,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9945,
-          "spread": 0.9071,
+          "premium_discount": 0.989,
+          "spread": 0.989,
           "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135243+00:00",
+        "timestamp": "2026-09-10T12:23:34.771548+00:00",
         "label": "healthy"
       },
       "binance": {
-        "score": 0.9586,
+        "score": 0.963,
         "components_used": [
           "premium_discount",
           "spread",
@@ -79,16 +79,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.985,
-          "spread": 0.9973,
-          "volume_trend": 0.9895,
+          "premium_discount": 0.9959,
+          "spread": 0.9917,
+          "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135274+00:00",
+        "timestamp": "2026-09-10T12:23:34.771580+00:00",
         "label": "healthy"
       },
       "okx": {
-        "score": 0.9474,
+        "score": 0.9561,
         "components_used": [
           "premium_discount",
           "spread",
@@ -96,67 +96,67 @@
         ],
         "components_raw": {
           "premium_discount": 1.0,
-          "spread": 0.9727,
+          "spread": 0.9972,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135283+00:00",
+        "timestamp": "2026-09-10T12:23:34.771589+00:00",
         "label": "healthy"
       }
     },
     "AAPL": {
       "bitget": {
-        "score": 0.9567,
+        "score": 0.9536,
         "components_used": [
           "premium_discount",
           "spread",
           "volume_trend",
-          "weekend"
-        ],
-        "components_raw": {
-          "premium_discount": 0.978,
-          "spread": 0.9906,
-          "volume_trend": 1.0,
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T09:39:14.135325+00:00",
-        "label": "healthy"
-      },
-      "binance": {
-        "score": 0.9513,
-        "components_used": [
-          "premium_discount",
-          "spread",
-          "volume_trend",
-          "weekend"
-        ],
-        "components_raw": {
-          "premium_discount": 0.967,
-          "spread": 0.9843,
-          "volume_trend": 1.0,
-          "weekend": 0.8
-        },
-        "timestamp": "2026-09-10T09:39:14.135361+00:00",
-        "label": "healthy"
-      },
-      "okx": {
-        "score": 0.9504,
-        "components_used": [
-          "premium_discount",
-          "spread",
           "weekend"
         ],
         "components_raw": {
           "premium_discount": 1.0,
-          "spread": 0.9812,
+          "spread": 0.9528,
+          "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135371+00:00",
+        "timestamp": "2026-09-10T12:23:34.771635+00:00",
+        "label": "healthy"
+      },
+      "binance": {
+        "score": 0.9557,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "volume_trend",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9827,
+          "spread": 0.9811,
+          "volume_trend": 1.0,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:23:34.771694+00:00",
+        "label": "healthy"
+      },
+      "okx": {
+        "score": 0.948,
+        "components_used": [
+          "premium_discount",
+          "spread",
+          "weekend"
+        ],
+        "components_raw": {
+          "premium_discount": 0.9969,
+          "spread": 0.978,
+          "weekend": 0.8
+        },
+        "timestamp": "2026-09-10T12:23:34.771707+00:00",
         "label": "healthy"
       }
     },
     "AMZN": {
       "bitget": {
-        "score": 0.9229,
+        "score": 0.9246,
         "components_used": [
           "premium_discount",
           "spread",
@@ -164,16 +164,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9545,
-          "spread": 0.897,
+          "premium_discount": 0.9167,
+          "spread": 0.9484,
           "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135407+00:00",
+        "timestamp": "2026-09-10T12:23:34.771749+00:00",
         "label": "healthy"
       },
       "binance": {
-        "score": 0.9486,
+        "score": 0.8656,
         "components_used": [
           "premium_discount",
           "spread",
@@ -181,16 +181,16 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9822,
-          "spread": 0.9565,
-          "volume_trend": 1.0,
+          "premium_discount": 0.9881,
+          "spread": 0.9207,
+          "volume_trend": 0.6622,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135435+00:00",
+        "timestamp": "2026-09-10T12:23:34.771781+00:00",
         "label": "healthy"
       },
       "okx": {
-        "score": 0.9444,
+        "score": 0.9416,
         "components_used": [
           "premium_discount",
           "spread",
@@ -198,16 +198,16 @@
         ],
         "components_raw": {
           "premium_discount": 1.0,
-          "spread": 0.9644,
+          "spread": 0.9564,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135444+00:00",
+        "timestamp": "2026-09-10T12:23:34.771790+00:00",
         "label": "healthy"
       }
     },
     "GOOGL": {
       "bitget": {
-        "score": 0.9445,
+        "score": 0.9403,
         "components_used": [
           "premium_discount",
           "spread",
@@ -216,15 +216,15 @@
         ],
         "components_raw": {
           "premium_discount": 0.9713,
-          "spread": 0.9547,
+          "spread": 0.9395,
           "volume_trend": 1.0,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135476+00:00",
+        "timestamp": "2026-09-10T12:23:34.771824+00:00",
         "label": "healthy"
       },
       "binance": {
-        "score": 0.96,
+        "score": 0.8816,
         "components_used": [
           "premium_discount",
           "spread",
@@ -232,27 +232,27 @@
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 0.9955,
-          "spread": 0.997,
-          "volume_trend": 0.9806,
+          "premium_discount": 1.0,
+          "spread": 0.9939,
+          "volume_trend": 0.6249,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135501+00:00",
+        "timestamp": "2026-09-10T12:23:34.771851+00:00",
         "label": "healthy"
       },
       "okx": {
-        "score": 0.9528,
+        "score": 0.9485,
         "components_used": [
           "premium_discount",
           "spread",
           "weekend"
         ],
         "components_raw": {
-          "premium_discount": 1.0,
-          "spread": 0.9879,
+          "premium_discount": 0.9924,
+          "spread": 0.9849,
           "weekend": 0.8
         },
-        "timestamp": "2026-09-10T09:39:14.135509+00:00",
+        "timestamp": "2026-09-10T12:23:34.771859+00:00",
         "label": "healthy"
       }
     }
