@@ -1,123 +1,135 @@
 """
-Composite Health Score calculation for issuer risk monitoring.
+Composite Health Score for single-issuer (Bitget) rToken structural
+risk monitoring. Every component is self-referential - each rToken
+is scored against ITS OWN historical baseline, never against price
+direction or against other rTokens. This keeps the system a
+structural/liquidity risk monitor, not a directional stock picker:
+the score should be able to flag a token even while its price is
+rising, and stay calm during a price drop if the wrapper's own
+liquidity mechanics look normal.
 
-Now that all three issuers (Bitget, Binance, OKX-xStocks) are
-sourced from standard exchange order books, every issuer has the
-same shape of data (price, bid, ask, volume) - no proxy metrics
-needed anymore.
+Components (all normalized 0.0 unhealthy - 1.0 healthy):
+  1. Spread            (25%) - real bid/ask spread
+  2. Order book depth   (20%) - bid+ask size vs this token's own
+                                recent baseline (thin book = fragile
+                                liquidity even if spread looks tight)
+  3. Volume trend        (20%) - current volume vs its own baseline
+  4. Abnormal movement    (20%) - how large the latest price move is
+                                relative to this token's own recent
+                                volatility, direction-agnostic (a
+                                sharp move up counts the same as a
+                                sharp move down)
+  5. Weekend/after-hours   (15%) - Bitget supplies liquidity
+                                internally outside NASDAQ/NYSE hours,
+                                which changes (not necessarily
+                                worsens) the liquidity mechanism
 
-Score is a weighted combination of:
-  1. Premium/Discount (30%) - how far an issuer's price deviates
-                              from the cross-issuer consensus
-                              (median) price
-  2. Spread             (25%) - real bid/ask spread, same formula
-                              for all three issuers
-  3. Volume Trend        (20%) - current volume vs its own recent
-                              baseline, same formula for all three
-  4. Weekend/After-Hours (15%) - flags reduced-liquidity windows
-  5. Sentiment            (10%) - optional, supplied externally from
-                              the bitget-signal news/sentiment skills
-
-All component scores are normalized to 0.0 (unhealthy) - 1.0 (healthy).
-Weights and thresholds here are heuristic / manually tuned, not the
-result of backtesting - this is disclosed openly in the project
-write-up rather than presented as a validated model.
+Weights are heuristic / manually tuned, not backtested - disclosed
+as such in the project write-up.
 """
 
 from datetime import datetime, timezone
-from statistics import mean, median
+from statistics import mean, stdev
 
 WEIGHTS = {
-    "premium_discount": 0.30,
     "spread": 0.25,
+    "depth": 0.20,
     "volume_trend": 0.20,
+    "abnormal_movement": 0.20,
     "weekend": 0.15,
-    "sentiment": 0.10,
 }
 
-HISTORY_WINDOW = 20  # how many recent points used for volume baseline
+HISTORY_WINDOW = 20  # rolling window size for all self-baselines
 
 
-# ── Component 1: Premium / Discount ───────────────────────────
-
-def calculate_consensus_price(issuer_prices: dict[str, float | None]) -> float | None:
-    """
-    With 3+ issuers, 'reference price' is the median across all
-    issuers currently reporting a valid price - more robust than
-    picking one issuer arbitrarily as ground truth, and more robust
-    than a mean (a single outlier issuer can't drag the consensus).
-    """
-    valid = [p for p in issuer_prices.values() if p is not None]
-    if not valid:
-        return None
-    return median(valid)
-
-
-def score_premium_discount(issuer_price: float | None, consensus_price: float | None) -> float | None:
-    """
-    Deviation of one issuer's price from the cross-issuer consensus.
-    Heuristic curve: 0% deviation -> score 1.0, 2%+ deviation -> ~0.
-    """
-    if issuer_price is None or consensus_price is None or consensus_price == 0:
-        return None
-    deviation_pct = abs(issuer_price - consensus_price) / consensus_price * 100
-    score = max(0.0, 1.0 - (deviation_pct / 2.0))
-    return round(score, 4)
-
-
-# ── Component 2: Spread ───────────────────────────────────────
+# ── Component 1: Spread ───────────────────────────────────────
 
 def score_spread(spread_pct: float | None) -> float | None:
-    """
-    Heuristic curve: 0% spread -> 1.0, 1%+ spread -> ~0.
-    Same formula for all three issuers now (all have real bid/ask).
-    """
+    """Heuristic curve: 0% spread -> 1.0, 1%+ spread -> ~0."""
     if spread_pct is None:
         return None
-    score = max(0.0, 1.0 - (spread_pct / 1.0))
-    return round(score, 4)
+    return round(max(0.0, 1.0 - (spread_pct / 1.0)), 4)
 
 
-# ── Component 3: Volume Trend ─────────────────────────────────
+# ── Component 2: Order book depth ─────────────────────────────
+
+def score_depth(bid_size: float | None, ask_size: float | None,
+                 depth_history: list[float]) -> float | None:
+    """
+    Total top-of-book size (bid+ask) vs this token's own recent
+    average. A thin book relative to its own normal depth is a
+    fragility signal even when the spread itself still looks tight.
+    """
+    if bid_size is None or ask_size is None or len(depth_history) < 3:
+        return None
+    current_depth = bid_size + ask_size
+    baseline = mean(depth_history)
+    if baseline == 0:
+        return None
+    ratio = current_depth / baseline
+    return round(min(1.0, max(0.0, ratio)), 4)
+
+
+# ── Component 3: Volume trend ─────────────────────────────────
 
 def score_volume_trend(current_volume: float | None, volume_history: list[float]) -> float | None:
-    """
-    Compares current volume against the mean of recent history.
-    A sharp drop vs baseline is treated as a liquidity warning sign.
-    Same formula for all three issuers now.
-    """
+    """Current volume vs its own recent baseline."""
     if current_volume is None or len(volume_history) < 3:
         return None
     baseline = mean(volume_history)
     if baseline == 0:
         return None
     ratio = current_volume / baseline
-
-    # ratio >= 1.0 (volume at/above baseline) -> score 1.0
-    # ratio approaching 0 (volume collapsing) -> score approaching 0
-    score = min(1.0, max(0.0, ratio))
-    return round(score, 4)
+    return round(min(1.0, max(0.0, ratio)), 4)
 
 
-# ── Component 4: Weekend / After-Hours ────────────────────────
+# ── Component 4: Abnormal movement (direction-agnostic) ───────
+
+def score_abnormal_movement(price_history: list[float]) -> float | None:
+    """
+    Compares the most recent price change to this token's own
+    typical volatility (stdev of recent % returns). Direction is
+    ignored on purpose - a sharp move up is scored the same as a
+    sharp move down, since the point is detecting unusual mechanical
+    behavior in the wrapper, not predicting where price goes next.
+    Needs at least 4 price points (3 returns) to be meaningful.
+    """
+    if len(price_history) < 4:
+        return None
+
+    returns = []
+    for i in range(1, len(price_history)):
+        prev, curr = price_history[i - 1], price_history[i]
+        if prev:
+            returns.append((curr - prev) / prev * 100)
+
+    if len(returns) < 3:
+        return None
+
+    historical_returns = returns[:-1]
+    latest_return = returns[-1]
+
+    vol = stdev(historical_returns) if len(historical_returns) >= 2 else None
+    if not vol or vol == 0:
+        return None
+
+    z_score = abs(latest_return) / vol
+    # z >= 3 (3 standard deviations) -> score 0; z == 0 -> score 1.0
+    return round(max(0.0, 1.0 - (z_score / 3.0)), 4)
+
+
+# ── Component 5: Weekend / after-hours ────────────────────────
 
 def score_weekend_afterhours(timestamp: datetime) -> float:
     """
-    Flags reduced-liquidity windows. This does not fail the score
-    outright - it lowers it slightly to reflect thinner backing
-    liquidity during these windows (issuers typically supply
-    weekend/after-hours liquidity internally rather than routing to
-    NASDAQ/NYSE, which behaves differently from regular market hours).
-
-    Simplified UTC-based check - does not account for US market
-    holidays or DST transitions precisely; good enough as a
-    hackathon-scope heuristic.
+    Small, deliberate penalty (not a hard drop) reflecting that
+    Bitget supplies liquidity internally outside regular NASDAQ/NYSE
+    hours - a different mechanism, not automatically a worse one.
+    Simplified UTC check, doesn't account for US market holidays/DST.
     """
     weekday = timestamp.weekday()  # 0=Mon ... 6=Sun
     hour_utc = timestamp.hour
-
-    is_weekend = weekday >= 5  # Sat, Sun
-    # US market hours roughly 13:30-20:00 UTC (9:30am-4pm ET, ignoring DST)
+    is_weekend = weekday >= 5
     is_after_hours = not (13 <= hour_utc < 20)
 
     if is_weekend:
@@ -131,16 +143,9 @@ def score_weekend_afterhours(timestamp: datetime) -> float:
 
 def calculate_composite_score(components: dict) -> dict:
     """
-    Combines component scores into one weighted composite.
-    Missing components are excluded and weights are renormalized
-    over whatever is actually available - this avoids silently
-    treating "no data" as "healthy" or "unhealthy".
-
-    components: dict with keys matching WEIGHTS, values are
-    float 0-1 or None.
-
-    Returns dict with the final score plus which components
-    were actually used (for transparency in the log).
+    Weighted composite over whatever components have data. Missing
+    components are excluded and weights renormalized over what's
+    available - avoids treating "no data yet" as healthy or unhealthy.
     """
     used = {k: v for k, v in components.items() if v is not None}
     if not used:
@@ -159,7 +164,6 @@ def calculate_composite_score(components: dict) -> dict:
 
 
 def classify_score(score: float | None) -> str:
-    """Maps a numeric score to a dashboard-friendly label."""
     if score is None:
         return "unknown"
     if score >= 0.8:
@@ -169,57 +173,36 @@ def classify_score(score: float | None) -> str:
     return "red_flag"
 
 
-def score_all_issuers(
-    issuer_data: dict[str, dict],
-    volume_histories: dict[str, list[float]],
-    now: datetime,
-) -> dict[str, dict]:
+def score_stock(data: dict, history: dict) -> dict:
     """
-    Convenience wrapper: scores every issuer for one underlying stock
-    in a single call, sharing the same consensus price across all of
-    them.
-
-    issuer_data: {"bitget": {"price":.., "spread_pct":.., "volume_24h":..}, ...}
-    volume_histories: {"bitget": [recent volumes...], ...}
+    Convenience wrapper: scores one stock given its latest fetch
+    entry and its own historical series.
+    data: single entry from fetch_bitget_data() (one stock)
+    history: {"volume": [...], "price": [...], "depth": [...]}
     """
-    consensus_price = calculate_consensus_price(
-        {name: d.get("price") for name, d in issuer_data.items()}
-    )
-
-    results = {}
-    for issuer_name, data in issuer_data.items():
-        components = {
-            "premium_discount": score_premium_discount(data.get("price"), consensus_price),
-            "spread": score_spread(data.get("spread_pct")),
-            "volume_trend": score_volume_trend(
-                data.get("volume_24h"), volume_histories.get(issuer_name, [])
-            ),
-            "weekend": score_weekend_afterhours(now),
-            "sentiment": data.get("sentiment_score"),  # wired in later from LLM layer
-        }
-        result = calculate_composite_score(components)
-        result["label"] = classify_score(result["score"])
-        results[issuer_name] = result
-
-    return results
+    now = datetime.now(timezone.utc)
+    components = {
+        "spread": score_spread(data.get("spread_pct")),
+        "depth": score_depth(data.get("bid_size"), data.get("ask_size"),
+                              history.get("depth", [])),
+        "volume_trend": score_volume_trend(data.get("volume_24h"),
+                                            history.get("volume", [])),
+        "abnormal_movement": score_abnormal_movement(history.get("price", [])),
+        "weekend": score_weekend_afterhours(now),
+    }
+    result = calculate_composite_score(components)
+    result["label"] = classify_score(result["score"])
+    return result
 
 
 if __name__ == "__main__":
     import json
 
-    now = datetime.now(timezone.utc)
-
-    # Fabricated example: 3 issuers reporting on the same underlying (NVDA)
-    issuer_data = {
-        "bitget": {"price": 224.75, "spread_pct": 0.067, "volume_24h": 77_826_397},
-        "binance": {"price": 224.60, "spread_pct": 0.05, "volume_24h": 12_500_000},
-        "okx": {"price": 224.68, "spread_pct": 0.08, "volume_24h": 9_800_000},
+    # Fabricated example: healthy token with enough history
+    fake_data = {"spread_pct": 0.07, "bid_size": 65, "ask_size": 140, "volume_24h": 78_000_000}
+    fake_history = {
+        "volume": [70_000_000, 75_000_000, 80_000_000],
+        "price": [224.1, 224.3, 224.5, 224.68, 224.75],
+        "depth": [180, 190, 200],
     }
-    volume_histories = {
-        "bitget": [70_000_000, 75_000_000, 80_000_000],
-        "binance": [11_000_000, 12_000_000, 13_000_000],
-        "okx": [9_000_000, 9_500_000, 10_000_000],
-    }
-
-    results = score_all_issuers(issuer_data, volume_histories, now)
-    print(json.dumps(results, indent=2))
+    print(json.dumps(score_stock(fake_data, fake_history), indent=2))
