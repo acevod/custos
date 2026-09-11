@@ -1,27 +1,33 @@
 """
-Main orchestrator for the Custos issuer health monitoring system.
+Main orchestrator for Custos - single-issuer (Bitget) rToken
+structural risk monitoring with active hold/sell/buy-back decisions.
 
-Run this on a schedule (every 15 min via GitHub Actions). Each run:
-  1. Pulls fresh data from all 3 issuers (Bitget, Binance, OKX-xStocks)
-  2. Updates rolling volume history (used as the volume_trend baseline)
-  3. Computes a composite Health Score per issuer per stock
-  4. Appends to the heartbeat log (always - this is what proves the
-     system was "alive" and monitoring throughout the competition)
-  5. Checks held positions - if the issuer currently holding exposure
-     for a stock looks unhealthy, evaluates whether to rotate to a
-     healthier issuer
-  6. On rotation: logs a standard transaction record (SELL + BUY legs,
-     as required by the submission form) plus a narrative event log
-     entry with LLM-generated reasoning
-  7. Persists updated state (positions + history) back to disk - the
-     GitHub Actions workflow is responsible for committing these
-     files back to the repo after this script runs
+Run on a schedule (every 4 hours via GitHub Actions). Each run:
+  1. Pulls fresh data for all 10 rTokens from Bitget
+  2. Updates rolling history (volume, price, order-book depth) used
+     as each token's own baseline
+  3. Computes a composite Health Score per token
+  4. Logs a heartbeat entry (always) - proof the system stayed alive
+     and monitoring throughout the competition
+  5. Among HELD tokens, finds the lowest-scoring one and ALWAYS asks
+     the LLM to evaluate SELL vs HOLD (with the actual score and an
+     explicit threshold in the prompt, so a healthy token reliably
+     gets HOLD rather than being sold just for ranking last)
+  6. Among SOLD tokens (holding cash), finds the highest-scoring one
+     and ALWAYS asks the LLM to evaluate BUY BACK vs WAIT
+  7. On an actual SELL or BUY BACK: logs a standard transaction
+     record (as required by the submission form) plus a narrative
+     event log entry with the LLM's reasoning
+  8. Persists state back to disk - the GitHub Actions workflow
+     commits data/ back to the repo after this script runs
 
 State files (all under data/):
-  history.json          - rolling volume history per issuer+stock
-  positions.json         - current simulated exposure per stock
-  heartbeat_log.jsonl     - one line per run, all issuer/stock scores
-  event_log.jsonl         - narrative decision log (rotations + flags)
+  history.json          - rolling volume/price/depth history per stock
+  positions.json         - status per stock: held (entry price/qty)
+                            or sold (cash held, sale details)
+  heartbeat_log.jsonl     - one line per run, all 10 scores
+  event_log.jsonl         - narrative decision log (every LLM call,
+                            not just ones that acted)
   transaction_log.jsonl   - standard format: timestamp, instrument,
                             direction, price, quantity, balance_change
   latest.json             - snapshot of the most recent run, for the
@@ -33,9 +39,7 @@ import os
 from datetime import datetime, timezone
 
 from fetch_bitget import fetch_bitget_data
-from fetch_binance import fetch_binance_data
-from fetch_okx import fetch_okx_data
-from health_score import score_all_issuers, HISTORY_WINDOW
+from health_score import score_stock, HISTORY_WINDOW
 from llm_client import call_llm
 
 DATA_DIR = "data"
@@ -46,18 +50,12 @@ EVENT_LOG_PATH = f"{DATA_DIR}/event_log.jsonl"
 TRANSACTION_LOG_PATH = f"{DATA_DIR}/transaction_log.jsonl"
 LATEST_PATH = f"{DATA_DIR}/latest.json"
 
-STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL"]
-ISSUERS = ["bitget", "binance", "okx"]
+STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "SPY", "QQQ", "KO", "MCD", "PYPL"]
 
-INITIAL_EXPOSURE_PER_ISSUER = 300.0  # clean number, per issuer per stock
-# -> $900 per stock (3 issuers), $4,500 total portfolio (5 stocks) -
-#    stays within the $500-5000 retail trader persona used in the
-#    project description.
+INITIAL_HOLDING_USD = 300.0  # per stock, $3,000 total portfolio
 
-# A position is only flagged for rotation if its current issuer's
-# score drops into "red_flag" territory (see classify_score in
-# health_score.py) - i.e. below 0.5.
-ROTATION_TRIGGER_LABEL = "red_flag"
+SELL_THRESHOLD = 0.5    # only sell if score is genuinely in red-flag territory
+BUYBACK_THRESHOLD = 0.7  # only buy back once score has genuinely recovered
 
 
 # ── Small I/O helpers ──────────────────────────────────────────
@@ -84,152 +82,136 @@ def append_jsonl(path: str, entry: dict):
 # ── State bootstrapping ────────────────────────────────────────
 
 def init_positions() -> dict:
-    """
-    First-run bootstrap: $300 exposure per issuer per stock (clean
-    number, $900/stock, $4,500 total portfolio). Only used if
-    positions.json doesn't exist yet.
-    """
-    positions = {}
-    for stock in STOCKS:
-        for issuer in ISSUERS:
-            positions.setdefault(stock, {})[issuer] = INITIAL_EXPOSURE_PER_ISSUER
-    return positions
+    """First-run bootstrap: every stock starts HELD with $300 exposure."""
+    return {stock: {"status": "held", "entry_price": None, "quantity": None,
+                     "cost_basis_usd": INITIAL_HOLDING_USD} for stock in STOCKS}
 
 
-# ── Data collection ─────────────────────────────────────────────
+# ── History maintenance ─────────────────────────────────────────
 
-def collect_all_issuer_data() -> dict:
+def update_history(history: dict, by_stock: dict) -> dict:
     """
-    Returns: { "NVDA": {"bitget": {...}, "binance": {...}, "okx": {...}}, ... }
-    Each fetcher already handles its own per-symbol errors, so a
-    single failed issuer/stock shows up as status="error" rather
-    than crashing the whole run.
+    Maintains rolling windows (HISTORY_WINDOW points) of volume,
+    price, and order-book depth per stock - these are each token's
+    own baseline, used by health_score.py's self-referential scoring.
     """
-    raw = {
-        "bitget": fetch_bitget_data(),
-        "binance": fetch_binance_data(),
-        "okx": fetch_okx_data(),
-    }
+    for stock, entry in by_stock.items():
+        if entry.get("status") != "ok":
+            continue
+        series = history.setdefault(stock, {"volume": [], "price": [], "depth": []})
 
-    by_stock = {stock: {} for stock in STOCKS}
-    for issuer, entries in raw.items():
-        for entry in entries:
-            stock = entry["underlying"]
-            if stock in by_stock:
-                by_stock[stock][issuer] = entry
-    return by_stock
+        if entry.get("volume_24h") is not None:
+            series["volume"].append(entry["volume_24h"])
+            series["volume"] = series["volume"][-HISTORY_WINDOW:]
 
+        if entry.get("price") is not None:
+            series["price"].append(entry["price"])
+            series["price"] = series["price"][-HISTORY_WINDOW:]
 
-def update_volume_history(history: dict, by_stock: dict) -> dict:
-    """
-    Maintains a rolling window (HISTORY_WINDOW points) of volume per
-    issuer+stock. Key format: "ISSUER:STOCK".
-    """
-    for stock, issuer_entries in by_stock.items():
-        for issuer, entry in issuer_entries.items():
-            if entry.get("status") != "ok" or entry.get("volume_24h") is None:
-                continue
-            key = f"{issuer}:{stock}"
-            history.setdefault(key, [])
-            history[key].append(entry["volume_24h"])
-            history[key] = history[key][-HISTORY_WINDOW:]
+        if entry.get("bid_size") is not None and entry.get("ask_size") is not None:
+            series["depth"].append(entry["bid_size"] + entry["ask_size"])
+            series["depth"] = series["depth"][-HISTORY_WINDOW:]
+
     return history
 
 
-# ── Rotation logic ──────────────────────────────────────────────
+# ── LLM decision helpers ────────────────────────────────────────
 
-def pick_best_alternative(current_issuer: str, scores: dict) -> tuple[str, float] | None:
-    """
-    Among issuers other than current_issuer, returns the one with the
-    highest health score, as (issuer_name, score). Returns None if no
-    other issuer has a valid score.
-    """
-    candidates = {
-        name: result["score"]
-        for name, result in scores.items()
-        if name != current_issuer and result.get("score") is not None
-    }
-    if not candidates:
-        return None
-    best = max(candidates, key=candidates.get)
-    return best, candidates[best]
-
-
-def build_llm_prompt(stock: str, from_issuer: str, to_issuer: str, scores: dict) -> str:
+def build_sell_hold_prompt(stock: str, score_result: dict) -> str:
     return (
-        f"You are a risk-monitoring assistant for tokenized stock issuers. "
-        f"For {stock}, the health score of {from_issuer} has degraded to "
-        f"{scores[from_issuer]['score']} (components: {scores[from_issuer]['components_raw']}). "
-        f"The healthiest alternative is {to_issuer} at {scores[to_issuer]['score']}. "
-        f"In 2-3 sentences, explain the likely reason for {from_issuer}'s degradation "
-        f"based on the component scores, and state whether rotating to {to_issuer} "
-        f"is a reasonable risk-mitigation action right now."
+        f"You are a structural risk monitor for a tokenized stock (rToken) on Bitget, "
+        f"NOT a directional stock picker - you do not predict price direction.\n\n"
+        f"Token: {stock}\n"
+        f"Current composite health score: {score_result['score']} "
+        f"(label: {score_result['label']})\n"
+        f"Component breakdown: {score_result['components_raw']}\n\n"
+        f"Rule: only recommend SELL if the score genuinely reflects structural "
+        f"risk (below {SELL_THRESHOLD}) - e.g. spread widening, thin order-book "
+        f"depth, abnormal volatility, or unusual volume. If the score is healthy "
+        f"or borderline, recommend HOLD. Do not react to price direction itself.\n\n"
+        f"Respond with your decision (SELL or HOLD) on the first line, then a "
+        f"2-3 sentence justification referencing the specific components above."
     )
 
 
-def execute_rotation(
-    stock: str,
-    from_issuer: str,
-    to_issuer: str,
-    exposure_usd: float,
-    issuer_data: dict,
-    scores: dict,
-    now: datetime,
-) -> dict:
-    """
-    Logs a rotation as two transaction legs (SELL the old issuer's
-    position, BUY the new one) in the standard format required by the
-    submission form, plus a narrative event log entry with LLM
-    reasoning. Returns the event summary (also used for console output).
-    """
-    from_price = issuer_data[stock][from_issuer].get("price")
-    to_price = issuer_data[stock][to_issuer].get("price")
-    event_id = f"rot_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
+def build_buyback_wait_prompt(stock: str, score_result: dict) -> str:
+    return (
+        f"You are a structural risk monitor for a tokenized stock (rToken) on Bitget. "
+        f"This token was previously sold due to structural risk and is currently held "
+        f"as cash (USDT).\n\n"
+        f"Token: {stock}\n"
+        f"Current composite health score: {score_result['score']} "
+        f"(label: {score_result['label']})\n"
+        f"Component breakdown: {score_result['components_raw']}\n\n"
+        f"Rule: only recommend BUY BACK if the score has genuinely recovered "
+        f"(at or above {BUYBACK_THRESHOLD}) - e.g. spread normalized, depth "
+        f"restored, volatility settled. Otherwise recommend WAIT.\n\n"
+        f"Respond with your decision (BUY_BACK or WAIT) on the first line, then a "
+        f"2-3 sentence justification referencing the specific components above."
+    )
 
-    if from_price and to_price:
-        quantity_from = round(exposure_usd / from_price, 6)
-        quantity_to = round(exposure_usd / to_price, 6)
-    else:
-        quantity_from = quantity_to = None
 
-    # Leg 1: SELL from the degraded issuer
+def parse_decision(llm_text: str | None, positive_word: str) -> bool:
+    """Looks for the expected keyword on the first line of the LLM's reply."""
+    if not llm_text:
+        return False
+    first_line = llm_text.strip().splitlines()[0].upper()
+    return positive_word in first_line
+
+
+# ── Transaction + event logging ─────────────────────────────────
+
+def log_sell(stock: str, price: float | None, quantity: float | None,
+             proceeds: float, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+    event_id = f"sell_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
     append_jsonl(TRANSACTION_LOG_PATH, {
-        "event_id": event_id,
-        "timestamp": now.isoformat(),
-        "instrument": stock,
-        "direction": f"SELL ({from_issuer})",
-        "price": from_price,
-        "quantity": quantity_from,
-        "balance_change": round(-exposure_usd, 2) if exposure_usd else None,
+        "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
+        "direction": "SELL", "price": price, "quantity": quantity,
+        "balance_change": round(proceeds, 2),
     })
-    # Leg 2: BUY into the healthier issuer
-    append_jsonl(TRANSACTION_LOG_PATH, {
-        "event_id": event_id,
-        "timestamp": now.isoformat(),
-        "instrument": stock,
-        "direction": f"BUY ({to_issuer})",
-        "price": to_price,
-        "quantity": quantity_to,
-        "balance_change": round(exposure_usd, 2) if exposure_usd else None,
-    })
-
-    # LLM reasoning (goes through the Qwen -> Groq -> OpenRouter fallback chain)
-    prompt = build_llm_prompt(stock, from_issuer, to_issuer, scores)
-    llm_result = call_llm(prompt)
-
     event = {
-        "event_id": event_id,
-        "timestamp": now.isoformat(),
-        "type": "rotation",
-        "instrument": stock,
-        "from_issuer": from_issuer,
-        "to_issuer": to_issuer,
-        "exposure_usd": exposure_usd,
-        "from_score": scores[from_issuer]["score"],
-        "to_score": scores[to_issuer]["score"],
-        "llm_reasoning": llm_result.get("content"),
-        "llm_provider_used": llm_result.get("provider_used"),
-        "llm_attempts": llm_result.get("attempts"),
+        "event_id": event_id, "timestamp": now.isoformat(), "type": "sell",
+        "instrument": stock, "price": price, "proceeds_usd": round(proceeds, 2),
+        "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
+        "llm_attempts": llm_meta.get("attempts"),
+    }
+    append_jsonl(EVENT_LOG_PATH, event)
+    return event
+
+
+def log_buyback(stock: str, price: float | None, quantity: float | None,
+                 cost: float, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+    event_id = f"buy_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
+    append_jsonl(TRANSACTION_LOG_PATH, {
+        "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
+        "direction": "BUY", "price": price, "quantity": quantity,
+        "balance_change": round(-cost, 2),
+    })
+    event = {
+        "event_id": event_id, "timestamp": now.isoformat(), "type": "buy_back",
+        "instrument": stock, "price": price, "cost_usd": round(cost, 2),
+        "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
+        "llm_attempts": llm_meta.get("attempts"),
+    }
+    append_jsonl(EVENT_LOG_PATH, event)
+    return event
+
+
+def log_evaluation_only(stock: str, decision_type: str, action_taken: str,
+                         score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+    """
+    Logs an LLM evaluation that did NOT result in a transaction (e.g.
+    HOLD or WAIT) - this is what keeps the event log populated every
+    cycle even when the portfolio doesn't change, per the "always
+    evaluate" design.
+    """
+    event = {
+        "event_id": f"eval_{stock}_{now.strftime('%Y%m%dT%H%M%S')}",
+        "timestamp": now.isoformat(), "type": decision_type, "instrument": stock,
+        "action_taken": action_taken, "score": score_result["score"],
+        "score_label": score_result["label"],
+        "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
+        "llm_attempts": llm_meta.get("attempts"),
     }
     append_jsonl(EVENT_LOG_PATH, event)
     return event
@@ -245,79 +227,83 @@ def run():
     if positions is None:
         positions = init_positions()
 
-    by_stock = collect_all_issuer_data()
-    history = update_volume_history(history, by_stock)
+    raw_entries = fetch_bitget_data()
+    by_stock = {e["underlying"]: e for e in raw_entries}
+    history = update_history(history, by_stock)
 
-    all_scores = {}
-    heartbeat_entries = []
+    scores = {}
+    heartbeat_scores, heartbeat_labels = {}, {}
+    for stock in STOCKS:
+        entry = by_stock.get(stock, {"status": "error"})
+        stock_history = history.get(stock, {"volume": [], "price": [], "depth": []})
+        result = score_stock(entry, stock_history) if entry.get("status") == "ok" else \
+            {"score": None, "label": "unknown", "components_raw": {}, "components_used": []}
+        scores[stock] = result
+        heartbeat_scores[stock] = result["score"]
+        heartbeat_labels[stock] = result["label"]
+
+    append_jsonl(HEARTBEAT_LOG_PATH, {
+        "timestamp": now.isoformat(), "scores": heartbeat_scores, "labels": heartbeat_labels,
+    })
+
     events_this_run = []
 
-    for stock in STOCKS:
-        issuer_entries = by_stock.get(stock, {})
+    # --- Evaluate the lowest-scoring HELD stock ---
+    held = [s for s in STOCKS if positions[s]["status"] == "held" and scores[s]["score"] is not None]
+    if held:
+        worst_stock = min(held, key=lambda s: scores[s]["score"])
+        score_result = scores[worst_stock]
+        prompt = build_sell_hold_prompt(worst_stock, score_result)
+        llm_result = call_llm(prompt)
+        decided_sell = parse_decision(llm_result.get("content"), "SELL") and score_result["score"] < SELL_THRESHOLD
 
-        volume_histories = {
-            issuer: history.get(f"{issuer}:{stock}", []) for issuer in ISSUERS
-        }
-        scores = score_all_issuers(issuer_entries, volume_histories, now)
-        all_scores[stock] = scores
+        if decided_sell:
+            price = by_stock[worst_stock].get("price")
+            qty = positions[worst_stock]["cost_basis_usd"] / price if price else None
+            proceeds = qty * price if (qty and price) else positions[worst_stock]["cost_basis_usd"]
+            event = log_sell(worst_stock, price, qty, proceeds,
+                              llm_result.get("content"), llm_result, now)
+            positions[worst_stock] = {"status": "sold", "cash_usdt": round(proceeds, 2),
+                                       "sold_price": price, "sold_timestamp": now.isoformat()}
+        else:
+            event = log_evaluation_only(worst_stock, "sell_hold_evaluation", "HOLD",
+                                         score_result, llm_result.get("content"), llm_result, now)
+        events_this_run.append(event)
 
-        # Surface any fetch errors so failures are visible in the repo
-        # instead of silently disappearing - this is what we check
-        # when an issuer's score looks suspiciously flat/empty.
-        errors = {
-            issuer: entry.get("error")
-            for issuer, entry in issuer_entries.items()
-            if entry.get("status") == "error"
-        }
+    # --- Evaluate the highest-scoring SOLD stock ---
+    sold = [s for s in STOCKS if positions[s]["status"] == "sold" and scores[s]["score"] is not None]
+    if sold:
+        best_stock = max(sold, key=lambda s: scores[s]["score"])
+        score_result = scores[best_stock]
+        prompt = build_buyback_wait_prompt(best_stock, score_result)
+        llm_result = call_llm(prompt)
+        decided_buy = parse_decision(llm_result.get("content"), "BUY_BACK") and \
+            score_result["score"] >= BUYBACK_THRESHOLD
 
-        heartbeat_entries.append({
-            "timestamp": now.isoformat(),
-            "instrument": stock,
-            "scores": {name: r["score"] for name, r in scores.items()},
-            "labels": {name: r["label"] for name, r in scores.items()},
-            "errors": errors if errors else None,
-        })
-
-        # Check whether the issuer currently holding exposure needs rotating
-        for issuer, exposure in positions.get(stock, {}).items():
-            if exposure <= 0:
-                continue  # nothing held here - no action regardless of score
-            issuer_score = scores.get(issuer, {})
-            if issuer_score.get("label") != ROTATION_TRIGGER_LABEL:
-                continue
-
-            alternative = pick_best_alternative(issuer, scores)
-            if alternative is None:
-                continue
-            to_issuer, to_score = alternative
-            if to_score <= issuer_score["score"]:
-                continue  # no better option available right now
-
-            event = execute_rotation(
-                stock, issuer, to_issuer, exposure, by_stock, scores, now
-            )
-            events_this_run.append(event)
-
-            # Update position bookkeeping: move exposure between issuers
-            positions[stock][issuer] = 0.0
-            positions[stock][to_issuer] = positions[stock].get(to_issuer, 0.0) + exposure
-
-    for entry in heartbeat_entries:
-        append_jsonl(HEARTBEAT_LOG_PATH, entry)
+        if decided_buy:
+            price = by_stock[best_stock].get("price")
+            cash = positions[best_stock]["cash_usdt"]
+            qty = cash / price if price else None
+            event = log_buyback(best_stock, price, qty, cash,
+                                 llm_result.get("content"), llm_result, now)
+            positions[best_stock] = {"status": "held", "entry_price": price,
+                                      "quantity": qty, "cost_basis_usd": cash}
+        else:
+            event = log_evaluation_only(best_stock, "buyback_wait_evaluation", "WAIT",
+                                         score_result, llm_result.get("content"), llm_result, now)
+        events_this_run.append(event)
 
     save_json(HISTORY_PATH, history)
     save_json(POSITIONS_PATH, positions)
     save_json(LATEST_PATH, {
-        "timestamp": now.isoformat(),
-        "scores": all_scores,
-        "positions": positions,
+        "timestamp": now.isoformat(), "scores": scores, "positions": positions,
         "events_this_run": events_this_run,
     })
 
-    print(f"[{now.isoformat()}] Run complete. "
-          f"{len(events_this_run)} rotation(s) triggered.")
+    print(f"[{now.isoformat()}] Run complete. {len(events_this_run)} LLM evaluation(s).")
     for event in events_this_run:
-        print(f"  - {event['instrument']}: {event['from_issuer']} -> {event['to_issuer']}")
+        print(f"  - {event.get('instrument')}: {event.get('type')} -> "
+              f"{event.get('action_taken', event.get('type'))}")
 
 
 if __name__ == "__main__":
