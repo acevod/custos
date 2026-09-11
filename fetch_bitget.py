@@ -1,16 +1,9 @@
 """
-Data puller for Bitget Reality Spot Stock API (rNVDA, rTSLA, rAAPL,
-rAMZN, rGOOGL). Public endpoint, verified against official docs:
+Data puller for Bitget Reality Spot Stock API - 10 rTokens covering a
+mix of volatility profiles (mega-cap tech, ETFs, consumer staples,
+fintech) so the abnormal-movement scoring has real contrast to work
+with. Public endpoint, no API key required.
 https://www.bitget.com/docs/catalog/market/market-data#get-tickers
-No API key required - the Ticker endpoint already includes bid1/ask1
-(top of book) and volume24h in a single call.
-
-Symbol verification status (tested live via browser):
-  rNVDAUSDT  - confirmed
-  rAMZNUSDT  - confirmed
-  rGOOGLUSDT - confirmed
-  rTSLAUSDT, rAAPLUSDT - same naming convention, not individually
-  re-tested but low risk given rNVDA/rAMZN/rGOOGL all followed it.
 """
 
 import requests
@@ -24,11 +17,16 @@ SYMBOLS = {
     "AAPL": "rAAPLUSDT",
     "AMZN": "rAMZNUSDT",
     "GOOGL": "rGOOGLUSDT",
+    "SPY": "rSPYUSDT",
+    "QQQ": "rQQQUSDT",
+    "KO": "rKOUSDT",
+    "MCD": "rMCDUSDT",
+    "PYPL": "rPYPLUSDT",
 }
 
 
 def fetch_ticker(symbol: str) -> dict:
-    """Fetch full ticker: lastPrice, bid1/ask1, volume24h, etc."""
+    """Fetch full ticker: lastPrice, bid1/ask1 price+size, volume24h."""
     url = f"{BASE_URL}/tickers"
     params = {"category": "SPOT", "symbol": symbol}
     resp = requests.get(url, params=params, timeout=10)
@@ -51,7 +49,7 @@ def calculate_spread_pct(bid: float | None, ask: float | None) -> float | None:
 def fetch_bitget_data() -> list[dict]:
     """
     Main entry point - called from the central data puller.
-    Returns a list of dicts, one entry per underlying stock.
+    Returns a list of dicts, one entry per rToken.
     """
     results = []
     for underlying, symbol in SYMBOLS.items():
@@ -62,14 +60,17 @@ def fetch_bitget_data() -> list[dict]:
 
             bid = float(ticker.get("bid1Price", 0)) or None
             ask = float(ticker.get("ask1Price", 0)) or None
+            bid_size = float(ticker.get("bid1Size", 0)) or None
+            ask_size = float(ticker.get("ask1Size", 0)) or None
 
             results.append({
-                "issuer": "bitget",
                 "underlying": underlying,
                 "symbol": symbol,
                 "price": float(ticker.get("lastPrice", 0)) or None,
                 "bid": bid,
                 "ask": ask,
+                "bid_size": bid_size,
+                "ask_size": ask_size,
                 "volume_24h": float(ticker.get("volume24h", 0)) or None,
                 "spread_pct": calculate_spread_pct(bid, ask),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -77,10 +78,7 @@ def fetch_bitget_data() -> list[dict]:
                 "status": "ok",
             })
         except Exception as e:
-            # Don't let one symbol's failure crash the whole batch -
-            # record the error and move on to the next symbol.
             results.append({
-                "issuer": "bitget",
                 "underlying": underlying,
                 "symbol": symbol,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
