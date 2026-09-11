@@ -1,0 +1,62 @@
+{
+  "NVDA": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "TSLA": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "AAPL": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "AMZN": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "GOOGL": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "SPY": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "QQQ": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "KO": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "MCD": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  },
+  "PYPL": {
+    "status": "held",
+    "entry_price": null,
+    "quantity": null,
+    "cost_basis_usd": 300.0
+  }
+}
