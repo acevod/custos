@@ -1,10 +1,15 @@
 name: Data Pull and Health Check
 
-# Runs automatically every 15 minutes, and can also be triggered
+# Runs automatically every 4 hours, and can also be triggered
 # manually from the Actions tab (useful for testing).
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    # Every 4 hours - matches the new decision cycle (was every 15
+    # min for the old cross-issuer design). This also sidesteps the
+    # GitHub Actions scheduling-delay issue we hit before: a 4-hour
+    # cadence tolerates an hour or two of queue delay without it
+    # meaningfully affecting the monitoring story.
+    - cron: "0 */4 * * *"
   workflow_dispatch: {}
 
 # Needed so this workflow can commit the updated data/ files back
