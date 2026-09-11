@@ -1,134 +1,174 @@
 {
-  "timestamp": "2026-09-11T15:23:19.711175+00:00",
+  "timestamp": "2026-09-11T18:49:20.022377+00:00",
   "scores": {
     "NVDA": {
-      "score": 0.9943,
+      "score": 0.8198,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
         "spread": 0.9909,
+        "depth": 1.0,
+        "volume_trend": 0.2905,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514254+00:00",
+      "timestamp": "2026-09-11T18:49:22.988396+00:00",
       "label": "healthy"
     },
     "TSLA": {
-      "score": 0.9744,
+      "score": 0.8461,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.959,
+        "spread": 0.989,
+        "depth": 1.0,
+        "volume_trend": 0.3981,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514269+00:00",
+      "timestamp": "2026-09-11T18:49:22.988445+00:00",
       "label": "healthy"
     },
     "AAPL": {
-      "score": 0.9962,
+      "score": 0.812,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.994,
+        "spread": 0.988,
+        "depth": 1.0,
+        "volume_trend": 0.2632,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514280+00:00",
+      "timestamp": "2026-09-11T18:49:22.988489+00:00",
       "label": "healthy"
     },
     "AMZN": {
-      "score": 0.9927,
+      "score": 0.8425,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9883,
+        "spread": 0.9805,
+        "depth": 1.0,
+        "volume_trend": 0.3944,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514288+00:00",
+      "timestamp": "2026-09-11T18:49:22.988530+00:00",
       "label": "healthy"
     },
     "GOOGL": {
-      "score": 0.9891,
+      "score": 0.8198,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9825,
+        "spread": 0.9882,
+        "depth": 1.0,
+        "volume_trend": 0.2939,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514295+00:00",
+      "timestamp": "2026-09-11T18:49:22.988566+00:00",
       "label": "healthy"
     },
     "SPY": {
-      "score": 0.9967,
+      "score": 0.7796,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9948,
+        "spread": 0.9974,
+        "depth": 0.6121,
+        "volume_trend": 0.5096,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514302+00:00",
-      "label": "healthy"
+      "timestamp": "2026-09-11T18:49:22.988593+00:00",
+      "label": "watch"
     },
     "QQQ": {
-      "score": 0.9974,
+      "score": 0.8287,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9958,
+        "spread": 0.9972,
+        "depth": 0.9759,
+        "volume_trend": 0.3423,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514309+00:00",
+      "timestamp": "2026-09-11T18:49:22.988623+00:00",
       "label": "healthy"
     },
     "KO": {
-      "score": 0.9929,
+      "score": 0.8165,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9886,
+        "spread": 0.9887,
+        "depth": 0.9352,
+        "volume_trend": 0.3451,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514330+00:00",
+      "timestamp": "2026-09-11T18:49:22.988667+00:00",
       "label": "healthy"
     },
     "MCD": {
-      "score": 0.9951,
+      "score": 0.8215,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9921,
+        "spread": 0.9763,
+        "depth": 0.9643,
+        "volume_trend": 0.3514,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514340+00:00",
+      "timestamp": "2026-09-11T18:49:22.988702+00:00",
       "label": "healthy"
     },
     "PYPL": {
-      "score": 0.977,
+      "score": 0.831,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9632,
+        "spread": 0.9814,
+        "depth": 0.9021,
+        "volume_trend": 0.445,
         "weekend": 1.0
       },
-      "timestamp": "2026-09-11T15:23:21.514348+00:00",
+      "timestamp": "2026-09-11T18:49:22.988733+00:00",
       "label": "healthy"
     }
   },
@@ -214,14 +254,14 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_TSLA_20260911T152319",
-      "timestamp": "2026-09-11T15:23:19.711175+00:00",
+      "event_id": "eval_SPY_20260911T184920",
+      "timestamp": "2026-09-11T18:49:20.022377+00:00",
       "type": "sell_hold_evaluation",
-      "instrument": "TSLA",
+      "instrument": "SPY",
       "action_taken": "HOLD",
-      "score": 0.9744,
-      "score_label": "healthy",
-      "llm_reasoning": "HOLD\n\nThe composite health score of 0.9744 is healthy, with the spread component at 0.959 and weekend conditions at 1.0, indicating no meaningful structural deterioration. There is no evidence of spread widening, liquidity stress, or abnormal market structure that would justify a SELL recommendation.",
+      "score": 0.7796,
+      "score_label": "watch",
+      "llm_reasoning": "HOLD\n\nThe composite score of 0.7796 is above the structural-risk threshold, supported by an extremely healthy spread component (0.9974) and no weekend penalty (1.0). While depth (0.6121) and volume trend (0.5096) are only moderate, they do not indicate severe liquidity deterioration or abnormal market structure. Therefore, there is no structural justification for a SELL at this time.",
       "llm_provider_used": "qwen_bitget",
       "llm_attempts": [
         {
