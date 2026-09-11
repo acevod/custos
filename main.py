@@ -81,10 +81,24 @@ def append_jsonl(path: str, entry: dict):
 
 # ── State bootstrapping ────────────────────────────────────────
 
-def init_positions() -> dict:
-    """First-run bootstrap: every stock starts HELD with $300 exposure."""
-    return {stock: {"status": "held", "entry_price": None, "quantity": None,
-                     "cost_basis_usd": INITIAL_HOLDING_USD} for stock in STOCKS}
+def init_positions(by_stock: dict) -> dict:
+    """
+    First-run bootstrap: every stock starts HELD with $300 exposure,
+    bought at its REAL price from this run's fetch. Quantity is
+    fixed at this point and does NOT get recalculated later - this
+    is what makes sell proceeds (quantity * price-at-sell-time)
+    genuinely diverge from $300 depending on how price moved since
+    entry, instead of always trivially equaling the cost basis.
+    """
+    positions = {}
+    for stock in STOCKS:
+        price = by_stock.get(stock, {}).get("price")
+        quantity = (INITIAL_HOLDING_USD / price) if price else None
+        positions[stock] = {
+            "status": "held", "entry_price": price, "quantity": quantity,
+            "cost_basis_usd": INITIAL_HOLDING_USD,
+        }
+    return positions
 
 
 # ── History maintenance ─────────────────────────────────────────
@@ -219,16 +233,49 @@ def log_evaluation_only(stock: str, decision_type: str, action_taken: str,
 
 # ── Main run ──────────────────────────────────────────────────
 
+# ── Portfolio summary ────────────────────────────────────────────
+
+def compute_portfolio_summary(positions: dict) -> dict:
+    """
+    Aggregates the per-stock ledger into portfolio-level totals -
+    total USDT currently held as cash, total cost-basis still
+    invested in rTokens, and their sum as total portfolio value.
+
+    This total is NOT expected to stay fixed at the initial $3,000 -
+    it will genuinely drift based on the real price at which each
+    SELL and BUY BACK executed (a sale at a higher price than the
+    original entry realizes a gain; a buy-back at a lower price
+    stretches that cash further). This is the raw, realized P&L
+    signal - kept separate from (and not a substitute for) the
+    decision-quality evaluation logged per cycle in event_log.jsonl,
+    which judges whether each SELL/BUY call was structurally
+    justified regardless of how the price happened to move after.
+    """
+    total_cash = sum(p["cash_usdt"] for p in positions.values() if p["status"] == "sold")
+    total_held_cost_basis = sum(p["cost_basis_usd"] for p in positions.values() if p["status"] == "held")
+    held_stocks = [s for s, p in positions.items() if p["status"] == "held"]
+    sold_stocks = [s for s, p in positions.items() if p["status"] == "sold"]
+
+    return {
+        "total_usdt_cash": round(total_cash, 2),
+        "total_held_cost_basis_usd": round(total_held_cost_basis, 2),
+        "total_portfolio_value_usd": round(total_cash + total_held_cost_basis, 2),
+        "held_stocks": held_stocks,
+        "sold_stocks_holding_cash": sold_stocks,
+    }
+
+
 def run():
     now = datetime.now(timezone.utc)
 
     history = load_json(HISTORY_PATH, {})
-    positions = load_json(POSITIONS_PATH, None)
-    if positions is None:
-        positions = init_positions()
 
     raw_entries = fetch_bitget_data()
     by_stock = {e["underlying"]: e for e in raw_entries}
+
+    positions = load_json(POSITIONS_PATH, None)
+    if positions is None:
+        positions = init_positions(by_stock)
     history = update_history(history, by_stock)
 
     scores = {}
@@ -259,7 +306,7 @@ def run():
 
         if decided_sell:
             price = by_stock[worst_stock].get("price")
-            qty = positions[worst_stock]["cost_basis_usd"] / price if price else None
+            qty = positions[worst_stock]["quantity"]  # fixed at entry, not recomputed here
             proceeds = qty * price if (qty and price) else positions[worst_stock]["cost_basis_usd"]
             event = log_sell(worst_stock, price, qty, proceeds,
                               llm_result.get("content"), llm_result, now)
@@ -297,6 +344,7 @@ def run():
     save_json(POSITIONS_PATH, positions)
     save_json(LATEST_PATH, {
         "timestamp": now.isoformat(), "scores": scores, "positions": positions,
+        "portfolio_summary": compute_portfolio_summary(positions),
         "events_this_run": events_this_run,
     })
 
