@@ -1,0 +1,235 @@
+{
+  "timestamp": "2026-09-11T11:52:43.564203+00:00",
+  "scores": {
+    "NVDA": {
+      "score": 0.9079,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9727,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.016971+00:00",
+      "label": "healthy"
+    },
+    "TSLA": {
+      "score": 0.9059,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9695,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.016985+00:00",
+      "label": "healthy"
+    },
+    "AAPL": {
+      "score": 0.9116,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9786,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.016995+00:00",
+      "label": "healthy"
+    },
+    "AMZN": {
+      "score": 0.9176,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9882,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017002+00:00",
+      "label": "healthy"
+    },
+    "GOOGL": {
+      "score": 0.8989,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9582,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017010+00:00",
+      "label": "healthy"
+    },
+    "SPY": {
+      "score": 0.9201,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9921,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017018+00:00",
+      "label": "healthy"
+    },
+    "QQQ": {
+      "score": 0.9189,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9902,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017025+00:00",
+      "label": "healthy"
+    },
+    "KO": {
+      "score": 0.7194,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.671,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017079+00:00",
+      "label": "watch"
+    },
+    "MCD": {
+      "score": 0.8044,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.8071,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017100+00:00",
+      "label": "healthy"
+    },
+    "PYPL": {
+      "score": 0.8083,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.8132,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-11T11:52:46.017115+00:00",
+      "label": "healthy"
+    }
+  },
+  "positions": {
+    "NVDA": {
+      "status": "held",
+      "entry_price": 219.79,
+      "quantity": 1.3649392602029211,
+      "cost_basis_usd": 300.0
+    },
+    "TSLA": {
+      "status": "held",
+      "entry_price": 360.35,
+      "quantity": 0.832523935063133,
+      "cost_basis_usd": 300.0
+    },
+    "AAPL": {
+      "status": "held",
+      "entry_price": 326.78,
+      "quantity": 0.9180488401982986,
+      "cost_basis_usd": 300.0
+    },
+    "AMZN": {
+      "status": "held",
+      "entry_price": 253.43,
+      "quantity": 1.183758828867932,
+      "cost_basis_usd": 300.0
+    },
+    "GOOGL": {
+      "status": "held",
+      "entry_price": 334.48,
+      "quantity": 0.896914613728773,
+      "cost_basis_usd": 300.0
+    },
+    "SPY": {
+      "status": "held",
+      "entry_price": 762.33,
+      "quantity": 0.3935303608673409,
+      "cost_basis_usd": 300.0
+    },
+    "QQQ": {
+      "status": "held",
+      "entry_price": 713.56,
+      "quantity": 0.4204271539884523,
+      "cost_basis_usd": 300.0
+    },
+    "KO": {
+      "status": "held",
+      "entry_price": 88.05,
+      "quantity": 3.4071550255536627,
+      "cost_basis_usd": 300.0
+    },
+    "MCD": {
+      "status": "held",
+      "entry_price": 253.98,
+      "quantity": 1.1811953697141508,
+      "cost_basis_usd": 300.0
+    },
+    "PYPL": {
+      "status": "held",
+      "entry_price": 53.48,
+      "quantity": 5.609573672400898,
+      "cost_basis_usd": 300.0
+    }
+  },
+  "portfolio_summary": {
+    "total_usdt_cash": 0,
+    "total_held_cost_basis_usd": 3000.0,
+    "total_portfolio_value_usd": 3000.0,
+    "held_stocks": [
+      "NVDA",
+      "TSLA",
+      "AAPL",
+      "AMZN",
+      "GOOGL",
+      "SPY",
+      "QQQ",
+      "KO",
+      "MCD",
+      "PYPL"
+    ],
+    "sold_stocks_holding_cash": []
+  },
+  "events_this_run": [
+    {
+      "event_id": "eval_KO_20260911T115243",
+      "timestamp": "2026-09-11T11:52:43.564203+00:00",
+      "type": "sell_hold_evaluation",
+      "instrument": "KO",
+      "action_taken": "HOLD",
+      "score": 0.7194,
+      "score_label": "watch",
+      "llm_reasoning": "HOLD\n\nThe composite score of 0.7194 remains above the structural-risk threshold, with the spread component at 0.671 indicating only moderate rather than severe liquidity stress. The weekend component at 0.8 also suggests no acute structural deterioration, so no SELL trigger is warranted.",
+      "llm_provider_used": "qwen_bitget",
+      "llm_attempts": [
+        {
+          "provider": "qwen_bitget",
+          "status": "success",
+          "error": null
+        }
+      ]
+    }
+  ]
+}
