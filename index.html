@@ -173,6 +173,37 @@
   }
 
   /* Decision log */
+  .log-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+
+  .log-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .log-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .log-scroll::-webkit-scrollbar-thumb {
+    background: var(--line);
+    border-radius: 4px;
+  }
+
+  .raw-link {
+    color: var(--text-dim);
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 3px;
+  }
+
+  .raw-link:hover {
+    color: var(--text);
+  }
+
   .log-entry {
     padding: 16px 0;
     border-bottom: 1px solid var(--line);
@@ -287,7 +318,8 @@
 
   <section>
     <h2>Decision log</h2>
-    <div id="log" class="log"></div>
+    <div id="log" class="log log-scroll"></div>
+    <p class="note"><a href="data/event_log.jsonl" class="raw-link">View full decision history (raw log)</a></p>
   </section>
 
   <section>
@@ -398,7 +430,7 @@
   async function init() {
     try {
       const latest = await fetchJSON('data/latest.json');
-      const events = await fetchJSONL('data/event_log.jsonl', 8);
+      const events = await fetchJSONL('data/event_log.jsonl', 20);
       const perf = latest.performance_summary;
       const ps = latest.portfolio_summary;
 
