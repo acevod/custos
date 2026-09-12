@@ -325,18 +325,20 @@
 
   <section>
     <h2>Holdings</h2>
-    <p class="note" style="margin-top:-8px; margin-bottom:16px;">An example paper-trading portfolio of 10 rTokens, used to demonstrate the scoring — the same method applies to any Bitget stock rToken.</p>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">An example paper-trading portfolio of 10 rTokens — no real funds move, but every price, spread, and volume reading is pulled live from Bitget. The same scoring method applies to any Bitget stock rToken.</p>
     <div id="holdings" class="holdings"></div>
   </section>
 
   <section>
     <h2>Decision log</h2>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Every cycle, the agent evaluates the weakest holding and the strongest cash position and logs its reasoning — whether or not it results in a trade.</p>
     <div id="log" class="log log-scroll"></div>
-    <p class="note"><a href="data/event_log.jsonl" class="raw-link">View full decision history (raw log)</a></p>
+    <p class="note"><a href="https://github.com/acevod/custos/blob/main/data/event_log.jsonl" class="raw-link" target="_blank" rel="noopener noreferrer">View full decision history on GitHub →</a></p>
   </section>
 
   <section>
     <h2>Performance</h2>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Realized profit/loss, win rate, and drawdown — computed only from completed round-trip trades (a sell followed eventually by a buy-back), not from price movement while simply holding.</p>
     <div id="perf"></div>
   </section>
 
