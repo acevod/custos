@@ -1,135 +1,175 @@
 {
-  "timestamp": "2026-09-12T08:11:12.120237+00:00",
+  "timestamp": "2026-09-12T14:30:52.406130+00:00",
   "scores": {
     "NVDA": {
-      "score": 0.7958,
+      "score": 0.6495,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9132,
+        "spread": 0.8583,
+        "depth": 0.0752,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170205+00:00",
+      "timestamp": "2026-09-12T14:30:54.607771+00:00",
       "label": "watch"
     },
     "TSLA": {
-      "score": 0.8483,
+      "score": 0.8993,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9973,
+        "spread": 0.9179,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170215+00:00",
+      "timestamp": "2026-09-12T14:30:54.607831+00:00",
       "label": "healthy"
     },
     "AAPL": {
-      "score": 0.7466,
+      "score": 0.8667,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8346,
+        "spread": 0.8136,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170221+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-12T14:30:54.607881+00:00",
+      "label": "healthy"
     },
     "AMZN": {
-      "score": 0.8184,
+      "score": 0.8143,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
         "spread": 0.9494,
+        "depth": 0.6205,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170225+00:00",
+      "timestamp": "2026-09-12T14:30:54.607929+00:00",
       "label": "healthy"
     },
     "GOOGL": {
-      "score": 0.8426,
+      "score": 0.9001,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9882,
+        "spread": 0.9204,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170229+00:00",
+      "timestamp": "2026-09-12T14:30:54.607971+00:00",
       "label": "healthy"
     },
     "SPY": {
-      "score": 0.774,
+      "score": 0.8686,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8784,
+        "spread": 0.8196,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170234+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-12T14:30:54.608011+00:00",
+      "label": "healthy"
     },
     "QQQ": {
-      "score": 0.7827,
+      "score": 0.9019,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8924,
+        "spread": 0.9329,
+        "depth": 0.9915,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170238+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-12T14:30:54.608054+00:00",
+      "label": "healthy"
     },
     "KO": {
-      "score": 0.7651,
+      "score": 0.5724,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8642,
+        "spread": 0.8529,
+        "depth": 0.7735,
+        "volume_trend": 0.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170253+00:00",
+      "timestamp": "2026-09-12T14:30:54.608103+00:00",
       "label": "watch"
     },
     "MCD": {
-      "score": 0.8203,
+      "score": 0.9102,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
         "spread": 0.9525,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170259+00:00",
+      "timestamp": "2026-09-12T14:30:54.608135+00:00",
       "label": "healthy"
     },
     "PYPL": {
-      "score": 0.6294,
+      "score": 0.8147,
       "components_used": [
         "spread",
+        "depth",
+        "volume_trend",
         "weekend"
       ],
       "components_raw": {
         "spread": 0.6471,
+        "depth": 1.0,
+        "volume_trend": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-12T08:11:14.170264+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-12T14:30:54.608167+00:00",
+      "label": "healthy"
     }
   },
   "positions": {
@@ -210,9 +250,9 @@
   "portfolio_summary": {
     "total_usdt_cash": 0.0,
     "total_held_cost_basis_usd": 3000.0,
-    "total_held_market_value_usd": 3000.37,
+    "total_held_market_value_usd": 3003.13,
     "total_portfolio_value_cost_basis_usd": 3000.0,
-    "total_portfolio_value_market_usd": 3000.37,
+    "total_portfolio_value_market_usd": 3003.13,
     "held_stocks": [
       "NVDA",
       "TSLA",
@@ -233,14 +273,14 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_PYPL_20260912T081112",
-      "timestamp": "2026-09-12T08:11:12.120237+00:00",
+      "event_id": "eval_KO_20260912T143052",
+      "timestamp": "2026-09-12T14:30:52.406130+00:00",
       "type": "sell_hold_evaluation",
-      "instrument": "PYPL",
+      "instrument": "KO",
       "action_taken": "HOLD",
-      "score": 0.6294,
+      "score": 0.5724,
       "score_label": "watch",
-      "llm_reasoning": "HOLD\n\nThe composite score of 0.6294 is above the 0.5 threshold, so the wrapper is not in a forced-sell stress regime. The spread component at 0.6471 and weekend component at 0.6 indicate only mild watch-level liquidity constraints, with weekend conditions slightly weaker but not severe. There is no clear evidence of durable structural degradation in the PYPL rToken wrapper from these components alone.",
+      "llm_reasoning": "HOLD\n\nThe composite score of 0.5724 is above the 0.5 threshold, so a SELL is structurally blocked despite the watch label. Spread and depth remain relatively healthy at 0.8529 and 0.7735, indicating the wrapper\u2019s immediate liquidity mechanics are not impaired. The zero volume-trend score is the main weakness, but with a weekend component of 0.6 it may reflect temporary session-related inactivity rather than durable structural degradation.",
       "llm_provider_used": "qwen_bitget",
       "llm_attempts": [
         {
