@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custos — structural risk monitor</title>
+<meta name="description" content="Structural liquidity risk monitoring for Bitget rTokens.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c111d;
+    --panel: #121829;
+    --line: #29314a;
+    --text: #e8e5dc;
+    --text-dim: #8890a4;
+    --healthy: #5fa88f;
+    --watch: #c9a24b;
+    --redflag: #bd5b45;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    line-height: 1.5;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  #app {
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header {
+    margin-bottom: 40px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .brand h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 42px;
+    letter-spacing: 0.01em;
+    margin: 0;
+  }
+
+  .pulse {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--healthy);
+    flex-shrink: 0;
+    align-self: center;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse { animation: none; opacity: 1; }
+  }
+
+  .tagline {
+    color: var(--text-dim);
+    font-size: 16px;
+    margin: 10px 0 0;
+    max-width: 46ch;
+  }
+
+  section {
+    margin-top: 48px;
+  }
+
+  h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Hero stat row */
+  .stat-row {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--line);
+  }
+
+  .stat {
+    flex: 1;
+    padding: 18px 20px;
+    border-right: 1px solid var(--line);
+  }
+
+  .stat:last-child { border-right: none; }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .stat-num {
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .hero .stat-num { font-size: 28px; }
+
+  /* Holdings ledger */
+  .row {
+    display: grid;
+    grid-template-columns: 64px 1fr 56px 84px 96px;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+
+  .row:last-child { border-bottom: none; }
+
+  .row-ticker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+  }
+
+  .meter {
+    height: 5px;
+    background: var(--line);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    transition: width 0.6s ease;
+  }
+
+  .row-score {
+    text-align: right;
+    color: var(--text-dim);
+  }
+
+  .row-label {
+    font-size: 13px;
+  }
+
+  .row-status {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+  }
+
+  /* Decision log */
+  .log-entry {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .log-meta {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .log-ticker { color: var(--text); }
+
+  .log-reasoning {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--text);
+    max-width: 68ch;
+  }
+
+  .empty {
+    color: var(--text-dim);
+    font-size: 14.5px;
+    margin: 0;
+  }
+
+  .note {
+    color: var(--text-dim);
+    font-size: 12.5px;
+    margin: 10px 0 0;
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  footer p { margin: 0; max-width: 62ch; }
+
+  .empty-state {
+    padding: 80px 0;
+  }
+
+  .empty-state h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 42px;
+    margin: 0 0 16px;
+  }
+
+  .empty-state p {
+    color: var(--text-dim);
+    max-width: 46ch;
+    font-size: 15px;
+  }
+
+  @media (max-width: 620px) {
+    #app { padding: 32px 18px 64px; }
+    .stat-row { flex-direction: column; }
+    .stat { border-right: none; border-bottom: 1px solid var(--line); }
+    .stat:last-child { border-bottom: none; }
+    .row {
+      grid-template-columns: 52px 1fr 44px;
+      grid-template-areas:
+        "ticker meter score"
+        "label label status";
+      row-gap: 4px;
+    }
+    .row-ticker { grid-area: ticker; }
+    .row-meter { grid-area: meter; }
+    .row-score { grid-area: score; }
+    .row-label { grid-area: label; }
+    .row-status { grid-area: status; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div id="app" class="loading">
+  <header>
+    <div class="brand">
+      <span class="pulse"></span>
+      <h1>Custos</h1>
+    </div>
+    <p class="tagline">Structural risk monitor for 10 Bitget rTokens — watches wrapper liquidity, not price direction.</p>
+  </header>
+
+  <section class="stat-row hero">
+    <div class="stat">
+      <div class="stat-label">Portfolio value</div>
+      <div class="stat-num mono" id="stat-value">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">USDT held</div>
+      <div class="stat-num mono" id="stat-cash">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Positions held</div>
+      <div class="stat-num mono" id="stat-held">—</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Holdings</h2>
+    <div id="holdings" class="holdings"></div>
+  </section>
+
+  <section>
+    <h2>Decision log</h2>
+    <div id="log" class="log"></div>
+  </section>
+
+  <section>
+    <h2>Performance</h2>
+    <div id="perf"></div>
+  </section>
+
+  <footer>
+    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price, only by wrapper health: spread, order-book depth, volume, and movement abnormal for that token's own history.</p>
+  </footer>
+</div>
+
+<script>
+  const STATUS_COLOR = {
+    healthy: 'var(--healthy)',
+    watch: 'var(--watch)',
+    red_flag: 'var(--redflag)',
+    unknown: 'var(--text-dim)',
+  };
+  const STATUS_LABEL = {
+    healthy: 'healthy',
+    watch: 'watch',
+    red_flag: 'red flag',
+    unknown: 'no data',
+  };
+
+  async function fetchJSON(path) {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) throw new Error(path + ' not found');
+    return res.json();
+  }
+
+  async function fetchJSONL(path, limit) {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const text = await res.text();
+    const lines = text.trim().split('\n').filter(Boolean).map(l => JSON.parse(l));
+    lines.reverse();
+    return limit ? lines.slice(0, limit) : lines;
+  }
+
+  function fmtUsd(n) {
+    if (n === null || n === undefined) return '—';
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  }
+
+  function renderHoldings(scores, positions) {
+    const tickers = Object.keys(scores);
+    return tickers.map(ticker => {
+      const s = scores[ticker];
+      const pos = positions[ticker];
+      const pct = s.score !== null ? Math.round(s.score * 100) : 0;
+      const color = STATUS_COLOR[s.label] || STATUS_COLOR.unknown;
+      const statusText = pos.status === 'held' ? 'held' : 'sold · cash';
+      return `
+        <div class="row">
+          <div class="row-ticker">${ticker}</div>
+          <div class="row-meter">
+            <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}"></div></div>
+          </div>
+          <div class="row-score mono">${s.score !== null ? s.score.toFixed(2) : '—'}</div>
+          <div class="row-label" style="color:${color}">${STATUS_LABEL[s.label] || 'no data'}</div>
+          <div class="row-status mono">${statusText}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderLog(events) {
+    if (!events.length) {
+      return '<p class="empty">No decisions logged yet — the agent evaluates every cycle once enough history builds up to score a token.</p>';
+    }
+    return events.map(e => {
+      let decision, color;
+      if (e.type === 'sell') { decision = 'SOLD'; color = 'var(--redflag)'; }
+      else if (e.type === 'buy_back') { decision = 'BOUGHT BACK'; color = 'var(--healthy)'; }
+      else { decision = (e.action_taken || '').toUpperCase(); color = 'var(--text-dim)'; }
+      const reasoning = (e.llm_reasoning || '').replace(/\n+/g, ' ').trim();
+      return `
+        <div class="log-entry">
+          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${e.instrument}</span> · <span style="color:${color}">${decision}</span></div>
+          <p class="log-reasoning">${reasoning}</p>
+        </div>`;
+    }).join('');
+  }
+
+  function renderPerformance(perf) {
+    if (!perf || perf.trade_count === 0) {
+      return '<p class="empty">No trades yet — every holding has stayed within its own healthy range so far.</p>';
+    }
+    const rows = [
+      ['Trades', perf.trade_count],
+      ['Win rate', perf.win_rate_pct !== null ? perf.win_rate_pct + '%' : '—'],
+      ['Realized P&L', fmtUsd(perf.total_realized_pnl_usd)],
+      ['Max drawdown', fmtUsd(perf.max_drawdown_usd)],
+    ];
+    let html = '<div class="stat-row">' + rows.map(([label, val]) =>
+      `<div class="stat"><div class="stat-label">${label}</div><div class="stat-num mono">${val}</div></div>`
+    ).join('') + '</div>';
+    if (perf.note) html += `<p class="note">${perf.note}</p>`;
+    return html;
+  }
+
+  async function init() {
+    try {
+      const latest = await fetchJSON('data/latest.json');
+      const events = await fetchJSONL('data/event_log.jsonl', 8);
+      const perf = latest.performance_summary;
+      const ps = latest.portfolio_summary;
+
+      document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
+      document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
+      document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
+      document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions);
+      document.getElementById('log').innerHTML = renderLog(events);
+      document.getElementById('perf').innerHTML = renderPerformance(perf);
+      document.getElementById('updated').textContent = fmtTime(latest.timestamp);
+    } catch (err) {
+      document.getElementById('app').innerHTML = `
+        <div class="empty-state">
+          <div class="brand"><span class="pulse"></span><h1>Custos</h1></div>
+          <p>Monitoring hasn't started yet. This dashboard populates once the first automated run completes — check back in a few hours, or trigger the workflow manually from the Actions tab.</p>
+        </div>`;
+    }
+  }
+
+  init();
+</script>
+
+</body>
+</html>
