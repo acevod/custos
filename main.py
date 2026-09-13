@@ -197,6 +197,16 @@ def build_buyback_wait_prompt(stock: str, score_result: dict) -> str:
 
 
 def parse_decision(llm_text: str | None, positive_word: str) -> bool:
+    """
+    Looks for the expected keyword on the first line of the LLM's reply.
+    Deliberate fail-safe: if the LLM produced no text at all (e.g. all
+    three providers in the fallback chain failed), this returns False
+    unconditionally - meaning a total LLM outage defaults to HOLD/WAIT
+    (no action) rather than SELL/BUY_BACK. Taking no action on missing
+    reasoning is the safer failure mode for a risk-monitoring system.
+    The caller distinguishes this fail-safe default from a genuine
+    LLM-evaluated HOLD/WAIT when logging (see action_taken in run()).
+    """
     if not llm_text:
         return False
     first_line = llm_text.strip().splitlines()[0].upper()
@@ -399,7 +409,8 @@ def run():
             event = log_sell(worst_stock, entry_price, price, qty, proceeds, realized_pnl,
                               llm_result.get("content"), llm_result, now)
         else:
-            event = log_evaluation_only(worst_stock, "sell_hold_evaluation", "HOLD",
+            action = "HOLD" if llm_result.get("success") else "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
+            event = log_evaluation_only(worst_stock, "sell_hold_evaluation", action,
                                          score_result, llm_result.get("content"), llm_result, now)
         events_this_run.append(event)
 
@@ -432,7 +443,8 @@ def run():
                 event = log_buyback(best_stock, price, qty, target_notional,
                                      llm_result.get("content"), llm_result, now)
         else:
-            event = log_evaluation_only(best_stock, "buyback_wait_evaluation", "WAIT",
+            action = "WAIT" if llm_result.get("success") else "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
+            event = log_evaluation_only(best_stock, "buyback_wait_evaluation", action,
                                          score_result, llm_result.get("content"), llm_result, now)
         events_this_run.append(event)
 
