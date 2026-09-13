@@ -374,18 +374,23 @@ def run():
     if positions is None:
         positions = init_positions(by_stock)
 
-    history = update_history(history, by_stock)
-
     scores = {}
     heartbeat_scores, heartbeat_labels = {}, {}
     for stock in STOCKS:
         entry = by_stock.get(stock, {"status": "error"})
+        # Score against the PRE-update history (this run's values are
+        # not yet included) - see health_score.py's score_stock
+        # docstring for why this ordering matters.
         stock_history = history.get(stock, {"volume": [], "price": [], "depth": []})
         result = score_stock(entry, stock_history) if entry.get("status") == "ok" else \
             {"score": None, "label": "unknown", "components_raw": {}, "components_used": []}
         scores[stock] = result
         heartbeat_scores[stock] = result["score"]
         heartbeat_labels[stock] = result["label"]
+
+    # Only now fold this run's values into history, so the NEXT run's
+    # baseline includes them - never this run's own scoring.
+    history = update_history(history, by_stock)
 
     append_jsonl(HEARTBEAT_LOG_PATH, {
         "timestamp": now.isoformat(), "scores": heartbeat_scores, "labels": heartbeat_labels,
