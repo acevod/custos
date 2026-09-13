@@ -386,6 +386,12 @@
     return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function renderHoldings(scores, positions) {
     const tickers = Object.keys(scores);
     return tickers.map(ticker => {
@@ -416,10 +422,10 @@
       if (e.type === 'sell') { decision = 'SOLD'; color = 'var(--redflag)'; }
       else if (e.type === 'buy_back') { decision = 'BOUGHT BACK'; color = 'var(--healthy)'; }
       else { decision = (e.action_taken || '').toUpperCase(); color = 'var(--text-dim)'; }
-      const reasoning = (e.llm_reasoning || '').replace(/\n+/g, ' ').trim();
+      const reasoning = escapeHtml((e.llm_reasoning || '').replace(/\n+/g, ' ').trim());
       return `
         <div class="log-entry">
-          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${e.instrument}</span> · <span style="color:${color}">${decision}</span></div>
+          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${escapeHtml(e.instrument)}</span> · <span style="color:${color}">${decision}</span></div>
           <p class="log-reasoning">${reasoning}</p>
         </div>`;
     }).join('');
