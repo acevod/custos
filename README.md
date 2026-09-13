@@ -100,6 +100,7 @@ custos/
 ├── health_score.py           # composite scoring logic
 ├── llm_client.py              # Qwen → Groq → OpenRouter fallback chain
 ├── requirements.txt
+├── LICENSE
 ├── .github/workflows/
 │   └── data-pull.yml          # runs main.py every 4 hours
 └── data/                       # committed automatically by the workflow
@@ -135,6 +136,15 @@ chain falls back to Groq then OpenRouter automatically.
 - **Scheduling isn't exact.** GitHub Actions doesn't guarantee precise cron timing on
   the free tier, especially at common intervals; the 4-hour cadence tolerates the delay
   this can introduce.
+- **Third-party model availability can change without warning.** During development,
+  Groq deprecated the free model this project originally used (`qwen3-32b`, announced
+  17 Jun 2026) and a separate free Qwen model on OpenRouter was also pulled — both
+  fallback providers failed in the same run, alongside an unrelated timeout on the
+  primary. The fix: Groq moved to a current model, and OpenRouter now uses its
+  `openrouter/free` auto-router instead of a pinned model ID, so it no longer depends
+  on one specific free model staying available. The fallback chain absorbed the
+  failure (it logged the outage rather than crashing) but still needed a manual code
+  fix to fully recover — a real limitation, not just a theoretical one.
 - **Heuristic weights.** The five component weights were set manually based on reasoning
   about what each signal means, not fit to historical data.
 
