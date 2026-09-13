@@ -217,7 +217,7 @@ def parse_decision(llm_text: str | None, positive_word: str) -> bool:
 
 def log_sell(stock: str, entry_price: float | None, exit_price: float | None,
              quantity: float | None, proceeds: float, realized_pnl: float,
-             reasoning: str, llm_meta: dict, now: datetime) -> dict:
+             score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
     event_id = f"sell_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
     append_jsonl(TRANSACTION_LOG_PATH, {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
@@ -226,15 +226,23 @@ def log_sell(stock: str, entry_price: float | None, exit_price: float | None,
     })
     pnl_pct = round((realized_pnl / (entry_price * quantity)) * 100, 4) \
         if (entry_price and quantity) else None
+    # Classify which zone triggered this - severe (score < SELL_SEVERE, an
+    # easy/obvious call) vs grey zone (SELL_SEVERE <= score < SELL_CEILING,
+    # where the LLM's own judgment actually decided the outcome). This is
+    # what lets Layer 2 (decision quality) be assessed separately from
+    # Layer 1 (the realized dollar P&L below).
+    decision_zone = "severe" if score_result["score"] < SELL_SEVERE else "grey_zone"
     append_jsonl(PERFORMANCE_LOG_PATH, {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
         "entry_price": entry_price, "exit_price": exit_price, "quantity": quantity,
         "realized_pnl_usd": realized_pnl, "realized_pnl_pct": pnl_pct,
+        "score_at_decision": score_result["score"], "decision_zone": decision_zone,
     })
     event = {
         "event_id": event_id, "timestamp": now.isoformat(), "type": "sell",
         "instrument": stock, "entry_price": entry_price, "exit_price": exit_price,
         "proceeds_usd": round(proceeds, 2), "realized_pnl_usd": realized_pnl,
+        "score_at_decision": score_result["score"], "decision_zone": decision_zone,
         "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
         "llm_attempts": llm_meta.get("attempts"),
     }
@@ -243,16 +251,18 @@ def log_sell(stock: str, entry_price: float | None, exit_price: float | None,
 
 
 def log_buyback(stock: str, price: float | None, quantity: float | None,
-                 cost: float, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+                 cost: float, score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
     event_id = f"buy_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
     append_jsonl(TRANSACTION_LOG_PATH, {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
         "direction": "BUY", "price": price, "quantity": quantity,
         "balance_change": round(-cost, 2),
     })
+    decision_zone = "strong" if score_result["score"] >= BUYBACK_STRONG else "grey_zone"
     event = {
         "event_id": event_id, "timestamp": now.isoformat(), "type": "buy_back",
         "instrument": stock, "price": price, "cost_usd": round(cost, 2),
+        "score_at_decision": score_result["score"], "decision_zone": decision_zone,
         "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
         "llm_attempts": llm_meta.get("attempts"),
     }
@@ -327,10 +337,10 @@ def compute_performance_metrics() -> dict:
     pcts = [t["realized_pnl_pct"] for t in trades if t.get("realized_pnl_pct") is not None]
     wins = [p for p in pnls if p > 0]
 
-    cum, running, peak, max_dd = [], 0.0, None, 0.0
+    cum, running, peak, max_dd = [], 0.0, 0.0, 0.0
     for p in pnls:
         running += p
-        peak = running if peak is None else max(peak, running)
+        peak = max(peak, running)
         max_dd = max(max_dd, peak - running)
         cum.append(running)
 
@@ -407,7 +417,7 @@ def run():
                 "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
             }
             event = log_sell(worst_stock, entry_price, price, qty, proceeds, realized_pnl,
-                              llm_result.get("content"), llm_result, now)
+                              score_result, llm_result.get("content"), llm_result, now)
         else:
             action = "HOLD" if llm_result.get("success") else "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
             event = log_evaluation_only(worst_stock, "sell_hold_evaluation", action,
@@ -441,7 +451,7 @@ def run():
                     "quantity": qty, "cost_basis_usd": round(target_notional, 2),
                 }
                 event = log_buyback(best_stock, price, qty, target_notional,
-                                     llm_result.get("content"), llm_result, now)
+                                     score_result, llm_result.get("content"), llm_result, now)
         else:
             action = "WAIT" if llm_result.get("success") else "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
             event = log_evaluation_only(best_stock, "buyback_wait_evaluation", action,
