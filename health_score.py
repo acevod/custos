@@ -85,31 +85,39 @@ def score_volume_trend(current_volume: float | None, volume_history: list[float]
 
 # ── Component 4: Abnormal movement (direction-agnostic) ───────
 
-def score_abnormal_movement(price_history: list[float]) -> float | None:
+def score_abnormal_movement(price_history: list[float], current_price: float | None) -> float | None:
     """
-    Compares the most recent price change to this token's own
-    typical volatility (stdev of recent % returns). Direction is
-    ignored on purpose - a sharp move up is scored the same as a
-    sharp move down, since the point is detecting unusual mechanical
-    behavior in the wrapper, not predicting where price goes next.
-    Needs at least 4 price points (3 returns) to be meaningful.
+    Compares the latest price move (from the most recent historical
+    reading to current_price) against this token's own typical
+    volatility (stdev of past % returns). Direction is ignored on
+    purpose - a sharp move up is scored the same as a sharp move
+    down, since the point is detecting unusual mechanical behavior
+    in the wrapper, not predicting where price goes next.
+
+    price_history must NOT include the current reading - it's the
+    pure past baseline, kept uncontaminated the same way depth/volume
+    are. current_price is this run's fresh reading, passed separately.
+    Needs at least 3 past prices (2 historical returns) plus a
+    current price to be meaningful.
     """
-    if len(price_history) < 4:
+    if current_price is None or len(price_history) < 3:
         return None
 
-    returns = []
+    historical_returns = []
     for i in range(1, len(price_history)):
         prev, curr = price_history[i - 1], price_history[i]
         if prev:
-            returns.append((curr - prev) / prev * 100)
+            historical_returns.append((curr - prev) / prev * 100)
 
-    if len(returns) < 3:
+    if len(historical_returns) < 2:
         return None
 
-    historical_returns = returns[:-1]
-    latest_return = returns[-1]
+    last_hist_price = price_history[-1]
+    if not last_hist_price:
+        return None
+    latest_return = (current_price - last_hist_price) / last_hist_price * 100
 
-    vol = stdev(historical_returns) if len(historical_returns) >= 2 else None
+    vol = stdev(historical_returns)
     if not vol or vol == 0:
         return None
 
@@ -178,7 +186,13 @@ def score_stock(data: dict, history: dict) -> dict:
     Convenience wrapper: scores one stock given its latest fetch
     entry and its own historical series.
     data: single entry from fetch_bitget_data() (one stock)
-    history: {"volume": [...], "price": [...], "depth": [...]}
+    history: {"volume": [...], "price": [...], "depth": [...]} -
+    IMPORTANT: this must be the baseline BEFORE this run's values are
+    added (the caller is responsible for scoring first, then updating
+    history afterward - see main.py's run()). Passing a history that
+    already includes the current reading silently biases volume_trend
+    and depth toward ~1.0, since the current value would be part of
+    its own baseline average.
     """
     now = datetime.now(timezone.utc)
     components = {
@@ -187,7 +201,7 @@ def score_stock(data: dict, history: dict) -> dict:
                               history.get("depth", [])),
         "volume_trend": score_volume_trend(data.get("volume_24h"),
                                             history.get("volume", [])),
-        "abnormal_movement": score_abnormal_movement(history.get("price", [])),
+        "abnormal_movement": score_abnormal_movement(history.get("price", []), data.get("price")),
         "weekend": score_weekend_afterhours(now),
     }
     result = calculate_composite_score(components)
@@ -198,11 +212,14 @@ def score_stock(data: dict, history: dict) -> dict:
 if __name__ == "__main__":
     import json
 
-    # Fabricated example: healthy token with enough history
-    fake_data = {"spread_pct": 0.07, "bid_size": 65, "ask_size": 140, "volume_24h": 78_000_000}
+    # Fabricated example: healthy token with enough PAST history.
+    # Note: fake_history contains only PAST values - the current
+    # reading lives in fake_data, kept separate (see score_stock's
+    # docstring on why history must not include the current run).
+    fake_data = {"price": 224.75, "spread_pct": 0.07, "bid_size": 65, "ask_size": 140, "volume_24h": 78_000_000}
     fake_history = {
         "volume": [70_000_000, 75_000_000, 80_000_000],
-        "price": [224.1, 224.3, 224.5, 224.68, 224.75],
+        "price": [223.5, 224.1, 224.3, 224.5],
         "depth": [180, 190, 200],
     }
     print(json.dumps(score_stock(fake_data, fake_history), indent=2))
