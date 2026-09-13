@@ -1,0 +1,254 @@
+{
+  "timestamp": "2026-09-13T04:16:26.116960+00:00",
+  "scores": {
+    "NVDA": {
+      "score": 0.8301,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9681,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822875+00:00",
+      "label": "healthy"
+    },
+    "TSLA": {
+      "score": 0.8432,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9891,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822889+00:00",
+      "label": "healthy"
+    },
+    "AAPL": {
+      "score": 0.6751,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.7202,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822899+00:00",
+      "label": "watch"
+    },
+    "AMZN": {
+      "score": 0.8037,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.926,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822909+00:00",
+      "label": "healthy"
+    },
+    "GOOGL": {
+      "score": 0.8445,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9912,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822917+00:00",
+      "label": "healthy"
+    },
+    "SPY": {
+      "score": 0.7201,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.7922,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822924+00:00",
+      "label": "watch"
+    },
+    "QQQ": {
+      "score": 0.8027,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9243,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822932+00:00",
+      "label": "healthy"
+    },
+    "KO": {
+      "score": 0.7298,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.8077,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822953+00:00",
+      "label": "watch"
+    },
+    "MCD": {
+      "score": 0.8203,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9525,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822963+00:00",
+      "label": "healthy"
+    },
+    "PYPL": {
+      "score": 0.6294,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.6471,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-13T04:16:28.822971+00:00",
+      "label": "watch"
+    }
+  },
+  "positions": {
+    "USDT": {
+      "balance_usdt": 0.0
+    },
+    "NVDA": {
+      "status": "held",
+      "entry_price": 219.23,
+      "exit_price": null,
+      "quantity": 1.368425854125804,
+      "cost_basis_usd": 300.0
+    },
+    "TSLA": {
+      "status": "held",
+      "entry_price": 367.2,
+      "exit_price": null,
+      "quantity": 0.8169934640522876,
+      "cost_basis_usd": 300.0
+    },
+    "AAPL": {
+      "status": "held",
+      "entry_price": 331.89,
+      "exit_price": null,
+      "quantity": 0.9039139473922083,
+      "cost_basis_usd": 300.0
+    },
+    "AMZN": {
+      "status": "held",
+      "entry_price": 256.83,
+      "exit_price": null,
+      "quantity": 1.1680878402055834,
+      "cost_basis_usd": 300.0
+    },
+    "GOOGL": {
+      "status": "held",
+      "entry_price": 341.21,
+      "exit_price": null,
+      "quantity": 0.8792239383370946,
+      "cost_basis_usd": 300.0
+    },
+    "SPY": {
+      "status": "held",
+      "entry_price": 765.93,
+      "exit_price": null,
+      "quantity": 0.3916807018918178,
+      "cost_basis_usd": 300.0
+    },
+    "QQQ": {
+      "status": "held",
+      "entry_price": 713.67,
+      "exit_price": null,
+      "quantity": 0.4203623523477238,
+      "cost_basis_usd": 300.0
+    },
+    "KO": {
+      "status": "held",
+      "entry_price": 88.46,
+      "exit_price": null,
+      "quantity": 3.3913633280578797,
+      "cost_basis_usd": 300.0
+    },
+    "MCD": {
+      "status": "held",
+      "entry_price": 252.53,
+      "exit_price": null,
+      "quantity": 1.1879776660198789,
+      "cost_basis_usd": 300.0
+    },
+    "PYPL": {
+      "status": "held",
+      "entry_price": 53.94,
+      "exit_price": null,
+      "quantity": 5.561735261401558,
+      "cost_basis_usd": 300.0
+    }
+  },
+  "portfolio_summary": {
+    "total_usdt_cash": 0.0,
+    "total_held_cost_basis_usd": 3000.0,
+    "total_held_market_value_usd": 3000.0,
+    "total_portfolio_value_cost_basis_usd": 3000.0,
+    "total_portfolio_value_market_usd": 3000.0,
+    "held_stocks": [
+      "NVDA",
+      "TSLA",
+      "AAPL",
+      "AMZN",
+      "GOOGL",
+      "SPY",
+      "QQQ",
+      "KO",
+      "MCD",
+      "PYPL"
+    ],
+    "sold_stocks_holding_cash": []
+  },
+  "performance_summary": {
+    "trade_count": 0,
+    "note": "no completed trades yet"
+  },
+  "events_this_run": [
+    {
+      "event_id": "eval_PYPL_20260913T041626",
+      "timestamp": "2026-09-13T04:16:26.116960+00:00",
+      "type": "sell_hold_evaluation",
+      "instrument": "PYPL",
+      "action_taken": "HOLD",
+      "score": 0.6294,
+      "score_label": "watch",
+      "llm_reasoning": "HOLD\n\nThe composite score of 0.6294 is above the 0.50 threshold, so a SELL is not permitted under the hard rules. The spread component at 0.6471 and weekend component at 0.60 indicate only mild-to-moderate wrapper liquidity watchfulness, not severe structural stress. This reads as a normal watch-level condition rather than durable degradation.",
+      "llm_provider_used": "qwen_bitget",
+      "llm_attempts": [
+        {
+          "provider": "qwen_bitget",
+          "status": "success",
+          "error": null
+        }
+      ]
+    }
+  ]
+}
