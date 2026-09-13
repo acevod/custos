@@ -3,6 +3,15 @@ LLM client with automatic fallback chain.
 Order: Qwen (Bitget credit) -> Groq -> OpenRouter
 All API keys are read from environment variables (GitHub Secrets
 when running via Actions, or a local .env file for testing).
+
+Note on model choice: the final fallback (OpenRouter) uses the
+"openrouter/free" auto-router rather than a pinned free-model ID.
+During development, two different hardcoded free Qwen model IDs went
+dead mid-run (deprecated / removed from the free tier without
+warning), taking down the entire fallback chain simultaneously with
+Groq's own deprecation of qwen3-32b. The auto-router avoids pinning
+to a specific model that can disappear without notice - it always
+resolves to whatever free model OpenRouter currently has live.
 """
 
 import os
@@ -21,13 +30,13 @@ PROVIDERS = [
         "name": "groq",
         "base_url": "https://api.groq.com/openai/v1",
         "api_key": os.environ.get("GROQ_API_KEY"),
-        "model": "qwen3-32b",
+        "model": "qwen/qwen3.6-27b",  # qwen3-32b was deprecated by Groq (announced 17 Jun 2026)
     },
     {
         "name": "openrouter",
         "base_url": "https://openrouter.ai/api/v1",
         "api_key": os.environ.get("OPENROUTER_API_KEY"),
-        "model": "qwen/qwen3.6-plus:free",
+        "model": "openrouter/free",  # auto-router - see note above
     },
 ]
 
