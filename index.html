@@ -312,6 +312,7 @@
     <div class="stat">
       <div class="stat-label">Portfolio value</div>
       <div class="stat-num mono" id="stat-value">—</div>
+      <div class="note" id="stale-note" style="display:none; margin-top:4px;">⚠ stale — some live prices unavailable this cycle</div>
     </div>
     <div class="stat">
       <div class="stat-label">USDT held</div>
@@ -456,6 +457,7 @@
       const ps = latest.portfolio_summary;
 
       document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
+      document.getElementById('stale-note').style.display = ps.valuation_status === 'stale' ? 'block' : 'none';
       document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
       document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
       document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions);
