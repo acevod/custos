@@ -14,6 +14,15 @@ on:
 
 # Needed so this workflow can commit the updated data/ files back
 # to the repo using the default GITHUB_TOKEN.
+# Prevents overlapping runs (e.g. a manual trigger firing while a
+# scheduled run is still in progress) from racing on the same
+# data/*.json state files - queues the second run instead of letting
+# both read/modify/push concurrently, which could otherwise produce
+# duplicated decisions or a lost-update git push conflict.
+concurrency:
+  group: custos-state
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
