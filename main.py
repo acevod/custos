@@ -60,6 +60,7 @@ LATEST_PATH = f"{DATA_DIR}/latest.json"
 STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "SPY", "QQQ", "KO", "MCD", "PYPL"]
 
 INITIAL_HOLDING_USD = 300.0  # per stock, $3,000 total portfolio
+TRADING_FEE_PCT = 0.0005  # 0.05% maker/taker, matching Bitget's disclosed rToken promo rate
 
 # Hard rules (code-enforced, cannot be overridden by the LLM):
 SELL_CEILING = 0.5       # never sell if score >= this
@@ -69,6 +70,19 @@ BUYBACK_FLOOR = 0.7      # never buy back if score < this
 # branching:
 SELL_SEVERE = 0.25       # below this, the structural case for selling is strong
 BUYBACK_STRONG = 0.9     # above this, the case for buying back is strong
+
+# A token needs at least this many of the 5 Health Score components
+# available before it's eligible for an ACTUAL action (SELL or
+# BUY_BACK) - not just a displayed score. Early on, a token may only
+# have spread + weekend (2/5, since those don't need history) while
+# depth/volume_trend/abnormal_movement are still None waiting for
+# enough historical points. A composite score built from only 2/5
+# signals can still cross a threshold by chance, and acting on that
+# thin evidence would undermine the whole "structural risk monitor"
+# premise. The dashboard is still free to display a preliminary
+# score - only the decision engine is gated by this.
+MIN_COMPONENTS_FOR_ACTION = 4
+ALL_COMPONENTS = {"spread", "depth", "volume_trend", "abnormal_movement", "weekend"}
 
 
 # ── Small I/O helpers ──────────────────────────────────────────
@@ -105,15 +119,19 @@ def init_positions(by_stock: dict) -> dict:
     """
     First-run bootstrap. USDT starts as its own explicit position at
     $0 (all capital is deployed into stocks at the start - nothing
-    is held as cash yet). Each stock enters HELD at its REAL price
-    from this run's fetch; quantity is fixed at this point and not
-    recalculated later, which is what makes sell proceeds genuinely
-    diverge from $300 depending on how price moved since entry.
+    is held as cash yet). Each stock enters HELD using the ASK price
+    (the executable buy-side price, not lastPrice) minus the trading
+    fee, from this run's fetch; quantity is fixed at this point and
+    not recalculated later, which is what makes sell proceeds
+    genuinely diverge from $300 depending on how price moved since
+    entry. Falls back to lastPrice if ask is unavailable for some
+    reason, rather than failing the entry entirely.
     """
     positions = {"USDT": {"balance_usdt": 0.0}}
     for stock in STOCKS:
-        price = by_stock.get(stock, {}).get("price")
-        quantity = (INITIAL_HOLDING_USD / price) if price else None
+        entry = by_stock.get(stock, {})
+        price = entry.get("ask") or entry.get("price")
+        quantity = (INITIAL_HOLDING_USD * (1 - TRADING_FEE_PCT) / price) if price else None
         positions[stock] = {
             "status": "held", "entry_price": price, "exit_price": None,
             "quantity": quantity, "cost_basis_usd": INITIAL_HOLDING_USD,
@@ -196,21 +214,25 @@ def build_buyback_wait_prompt(stock: str, score_result: dict) -> str:
     )
 
 
-def parse_decision(llm_text: str | None, positive_word: str) -> bool:
+def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     """
-    Looks for the expected keyword on the first line of the LLM's reply.
-    Deliberate fail-safe: if the LLM produced no text at all (e.g. all
-    three providers in the fallback chain failed), this returns False
-    unconditionally - meaning a total LLM outage defaults to HOLD/WAIT
-    (no action) rather than SELL/BUY_BACK. Taking no action on missing
-    reasoning is the safer failure mode for a risk-monitoring system.
-    The caller distinguishes this fail-safe default from a genuine
-    LLM-evaluated HOLD/WAIT when logging (see action_taken in run()).
+    Strictly parses the LLM's decision from the first line of its
+    reply. Requires an EXACT match (after stripping whitespace and
+    common markdown/punctuation wrapping) against one of valid_words -
+    e.g. {"SELL", "HOLD"}. This is deliberately NOT a substring
+    search: a naive `"SELL" in first_line` check would incorrectly
+    match a line like "HOLD — SELL is not justified", silently
+    turning a HOLD into a SELL. Returns None (unparseable) for
+    anything that isn't an exact match, including a total LLM outage
+    (no text at all) - the caller treats None the same as "no
+    action", which is the safer failure mode for a risk-monitoring
+    system.
     """
     if not llm_text:
-        return False
-    first_line = llm_text.strip().splitlines()[0].upper()
-    return positive_word in first_line
+        return None
+    first_line = llm_text.strip().splitlines()[0]
+    cleaned = first_line.strip().strip("*_`\"'.:—- ").upper()
+    return cleaned if cleaned in valid_words else None
 
 
 # ── Transaction + event + performance logging ───────────────────
@@ -294,10 +316,16 @@ def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
     (what the portfolio is worth right now at live prices). Neither
     figure feeds back into the SELL/BUY decision logic, which stays
     purely structural - these are reporting-only numbers.
+
+    If a held token's live price is unavailable, its market value
+    falls back to cost basis so the total is still computable - but
+    that fallback is tracked and surfaced as valuation_status, rather
+    than silently presenting a stale number as a confirmed live one.
     """
     usdt = positions["USDT"]["balance_usdt"]
     held_cost_basis, held_market_value = 0.0, 0.0
     held_stocks, sold_stocks = [], []
+    valuation_is_stale = False
 
     for stock in STOCKS:
         p = positions[stock]
@@ -309,6 +337,7 @@ def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
                 held_market_value += p["quantity"] * current_price
             else:
                 held_market_value += p["cost_basis_usd"]
+                valuation_is_stale = True
         else:
             sold_stocks.append(stock)
 
@@ -318,6 +347,7 @@ def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
         "total_held_market_value_usd": round(held_market_value, 2),
         "total_portfolio_value_cost_basis_usd": round(usdt + held_cost_basis, 2),
         "total_portfolio_value_market_usd": round(usdt + held_market_value, 2),
+        "valuation_status": "stale" if valuation_is_stale else "live",
         "held_stocks": held_stocks,
         "sold_stocks_holding_cash": sold_stocks,
     }
@@ -403,30 +433,51 @@ def run():
     if held:
         worst_stock = min(held, key=lambda s: scores[s]["score"])
         score_result = scores[worst_stock]
-        prompt = build_sell_hold_prompt(worst_stock, score_result)
-        llm_result = call_llm(prompt)
-        decided_sell = parse_decision(llm_result.get("content"), "SELL") and score_result["score"] < SELL_CEILING
 
-        if decided_sell:
-            price = by_stock[worst_stock].get("price")
-            qty = positions[worst_stock]["quantity"]
-            entry_price = positions[worst_stock]["entry_price"]
-            cost_basis = positions[worst_stock]["cost_basis_usd"]
-            proceeds = qty * price if (qty and price) else cost_basis
-            realized_pnl = round(proceeds - cost_basis, 2)
-
-            positions["USDT"]["balance_usdt"] = round(positions["USDT"]["balance_usdt"] + proceeds, 2)
-            positions[worst_stock] = {
-                "status": "sold", "entry_price": entry_price, "exit_price": price,
-                "quantity_sold": qty, "proceeds_usd": round(proceeds, 2),
-                "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
-            }
-            event = log_sell(worst_stock, entry_price, price, qty, proceeds, realized_pnl,
-                              score_result, llm_result.get("content"), llm_result, now)
+        if len(score_result["components_used"]) < MIN_COMPONENTS_FOR_ACTION:
+            # Not enough historical signal yet - skip the LLM call
+            # entirely rather than evaluating with partial data and
+            # then gating the outcome. Distinct state from a genuine
+            # HOLD (see MIN_COMPONENTS_FOR_ACTION above).
+            n = len(score_result["components_used"])
+            event = log_evaluation_only(
+                worst_stock, "sell_hold_evaluation",
+                f"HOLD (warming up - only {n}/5 components available, need {MIN_COMPONENTS_FOR_ACTION})",
+                score_result, None, {"provider_used": None, "attempts": []}, now,
+            )
         else:
-            action = "HOLD" if llm_result.get("success") else "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
-            event = log_evaluation_only(worst_stock, "sell_hold_evaluation", action,
-                                         score_result, llm_result.get("content"), llm_result, now)
+            prompt = build_sell_hold_prompt(worst_stock, score_result)
+            llm_result = call_llm(prompt)
+            decision = parse_decision(llm_result.get("content"), {"SELL", "HOLD"})
+            decided_sell = decision == "SELL" and score_result["score"] < SELL_CEILING
+
+            if decided_sell:
+                price = by_stock[worst_stock].get("bid") or by_stock[worst_stock].get("price")
+                qty = positions[worst_stock]["quantity"]
+                entry_price = positions[worst_stock]["entry_price"]
+                cost_basis = positions[worst_stock]["cost_basis_usd"]
+                gross_proceeds = qty * price if (qty and price) else cost_basis
+                fee = gross_proceeds * TRADING_FEE_PCT
+                proceeds = gross_proceeds - fee
+                realized_pnl = round(proceeds - cost_basis, 2)
+
+                positions["USDT"]["balance_usdt"] = round(positions["USDT"]["balance_usdt"] + proceeds, 2)
+                positions[worst_stock] = {
+                    "status": "sold", "entry_price": entry_price, "exit_price": price,
+                    "quantity_sold": qty, "proceeds_usd": round(proceeds, 2),
+                    "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
+                }
+                event = log_sell(worst_stock, entry_price, price, qty, proceeds, realized_pnl,
+                                  score_result, llm_result.get("content"), llm_result, now)
+            else:
+                if not llm_result.get("success"):
+                    action = "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
+                elif decision is None:
+                    action = "HOLD (response unparseable - fail-safe default, not a confirmed decision)"
+                else:
+                    action = "HOLD"
+                event = log_evaluation_only(worst_stock, "sell_hold_evaluation", action,
+                                             score_result, llm_result.get("content"), llm_result, now)
         events_this_run.append(event)
 
     # --- Evaluate the highest-scoring SOLD stock ---
@@ -434,33 +485,47 @@ def run():
     if sold:
         best_stock = max(sold, key=lambda s: scores[s]["score"])
         score_result = scores[best_stock]
-        prompt = build_buyback_wait_prompt(best_stock, score_result)
-        llm_result = call_llm(prompt)
-        decided_buy = parse_decision(llm_result.get("content"), "BUY_BACK") and \
-            score_result["score"] >= BUYBACK_FLOOR
 
-        if decided_buy:
-            price = by_stock[best_stock].get("price")
-            available_cash = positions["USDT"]["balance_usdt"]
-            target_notional = min(INITIAL_HOLDING_USD, available_cash)
-
-            if target_notional <= 0 or not price:
-                event = log_evaluation_only(best_stock, "buyback_wait_evaluation",
-                                             "WAIT (insufficient USDT cash)", score_result,
-                                             llm_result.get("content"), llm_result, now)
-            else:
-                qty = target_notional / price
-                positions["USDT"]["balance_usdt"] = round(available_cash - target_notional, 2)
-                positions[best_stock] = {
-                    "status": "held", "entry_price": price, "exit_price": None,
-                    "quantity": qty, "cost_basis_usd": round(target_notional, 2),
-                }
-                event = log_buyback(best_stock, price, qty, target_notional,
-                                     score_result, llm_result.get("content"), llm_result, now)
+        if len(score_result["components_used"]) < MIN_COMPONENTS_FOR_ACTION:
+            n = len(score_result["components_used"])
+            event = log_evaluation_only(
+                best_stock, "buyback_wait_evaluation",
+                f"WAIT (warming up - only {n}/5 components available, need {MIN_COMPONENTS_FOR_ACTION})",
+                score_result, None, {"provider_used": None, "attempts": []}, now,
+            )
         else:
-            action = "WAIT" if llm_result.get("success") else "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
-            event = log_evaluation_only(best_stock, "buyback_wait_evaluation", action,
+            prompt = build_buyback_wait_prompt(best_stock, score_result)
+            llm_result = call_llm(prompt)
+            decision = parse_decision(llm_result.get("content"), {"BUY_BACK", "WAIT"})
+            decided_buy = decision == "BUY_BACK" and score_result["score"] >= BUYBACK_FLOOR
+
+            if decided_buy:
+                price = by_stock[best_stock].get("ask") or by_stock[best_stock].get("price")
+                available_cash = positions["USDT"]["balance_usdt"]
+                target_notional = min(INITIAL_HOLDING_USD, available_cash)
+
+                if target_notional <= 0 or not price:
+                    event = log_evaluation_only(best_stock, "buyback_wait_evaluation",
+                                                 "WAIT (insufficient USDT cash)", score_result,
+                                                 llm_result.get("content"), llm_result, now)
+                else:
+                    qty = (target_notional * (1 - TRADING_FEE_PCT)) / price
+                    positions["USDT"]["balance_usdt"] = round(available_cash - target_notional, 2)
+                    positions[best_stock] = {
+                        "status": "held", "entry_price": price, "exit_price": None,
+                        "quantity": qty, "cost_basis_usd": round(target_notional, 2),
+                    }
+                    event = log_buyback(best_stock, price, qty, target_notional,
                                          score_result, llm_result.get("content"), llm_result, now)
+            else:
+                if not llm_result.get("success"):
+                    action = "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
+                elif decision is None:
+                    action = "WAIT (response unparseable - fail-safe default, not a confirmed decision)"
+                else:
+                    action = "WAIT"
+                event = log_evaluation_only(best_stock, "buyback_wait_evaluation", action,
+                                             score_result, llm_result.get("content"), llm_result, now)
         events_this_run.append(event)
 
     performance_summary = compute_performance_metrics()
