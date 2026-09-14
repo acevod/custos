@@ -1,28 +1,42 @@
 """
 Composite Health Score for single-issuer (Bitget) rToken structural
-risk monitoring. Every component is self-referential - each rToken
-is scored against ITS OWN historical baseline, never against price
-direction or against other rTokens. This keeps the system a
-structural/liquidity risk monitor, not a directional stock picker:
-the score should be able to flag a token even while its price is
-rising, and stay calm during a price drop if the wrapper's own
-liquidity mechanics look normal.
+risk monitoring. Three of the five components are self-referential -
+scored against each rToken's OWN historical baseline (depth, volume
+trend, abnormal movement). Spread uses a fixed absolute threshold
+rather than a historical baseline, and weekend/after-hours is
+calendar-based rather than data-driven - both are disclosed as such
+below rather than folded into a blanket "all self-referential" claim.
+None of the five compares a token against price direction or against
+other rTokens: the score should be able to flag a token even while
+its price is rising, and stay calm during a price drop if the
+wrapper's own liquidity mechanics look normal.
 
 Components (all normalized 0.0 unhealthy - 1.0 healthy):
-  1. Spread            (25%) - real bid/ask spread
-  2. Order book depth   (20%) - bid+ask size vs this token's own
-                                recent baseline (thin book = fragile
-                                liquidity even if spread looks tight)
-  3. Volume trend        (20%) - current volume vs its own baseline
-  4. Abnormal movement    (20%) - how large the latest price move is
+  1. Spread              (25%) - real bid/ask spread against a fixed
+                                absolute threshold, NOT compared to
+                                this token's own historical spread
+  2. Top-of-book size     (20%) - best-bid + best-ask size vs this
+                                token's own recent baseline. This is
+                                top-of-book liquidity only, not true
+                                multi-level order-book depth (Bitget's
+                                deeper Reality order book is a
+                                separate, access-gated endpoint) -
+                                a thin top-of-book can still coexist
+                                with a thick book further down
+  3. Volume trend          (20%) - current volume vs its own baseline
+  4. Abnormal movement      (20%) - how large the latest price move is
                                 relative to this token's own recent
                                 volatility, direction-agnostic (a
                                 sharp move up counts the same as a
                                 sharp move down)
-  5. Weekend/after-hours   (15%) - Bitget supplies liquidity
-                                internally outside NASDAQ/NYSE hours,
-                                which changes (not necessarily
-                                worsens) the liquidity mechanism
+  5. Weekend/after-hours     (15%) - a fixed calendar-based penalty
+                                (not derived from this token's own
+                                data) reflecting that Bitget supplies
+                                liquidity internally outside NASDAQ/
+                                NYSE hours, which changes (not
+                                necessarily worsens) the mechanism.
+                                Hardcoded UTC hours - does not account
+                                for DST or US market holidays.
 
 Weights are heuristic / manually tuned, not backtested - disclosed
 as such in the project write-up.
@@ -39,7 +53,7 @@ WEIGHTS = {
     "weekend": 0.15,
 }
 
-HISTORY_WINDOW = 20  # rolling window size for all self-baselines
+HISTORY_WINDOW = 42  # ~7 days at 4-hour cadence - spans a full weekday+weekend cycle
 
 
 # ── Component 1: Spread ───────────────────────────────────────
