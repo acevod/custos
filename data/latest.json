@@ -1,0 +1,249 @@
+{
+  "timestamp": "2026-09-14T10:15:16.757973+00:00",
+  "scores": {
+    "NVDA": {
+      "score": 0.9132,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9811,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662537+00:00",
+      "label": "healthy"
+    },
+    "TSLA": {
+      "score": 0.8919,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.947,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662551+00:00",
+      "label": "healthy"
+    },
+    "AAPL": {
+      "score": 0.8873,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9397,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662560+00:00",
+      "label": "healthy"
+    },
+    "AMZN": {
+      "score": 0.8781,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9249,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662568+00:00",
+      "label": "healthy"
+    },
+    "GOOGL": {
+      "score": 0.8878,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9405,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662576+00:00",
+      "label": "healthy"
+    },
+    "SPY": {
+      "score": 0.9193,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9908,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662584+00:00",
+      "label": "healthy"
+    },
+    "QQQ": {
+      "score": 0.9187,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.99,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662592+00:00",
+      "label": "healthy"
+    },
+    "KO": {
+      "score": 0.8551,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.8882,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662613+00:00",
+      "label": "healthy"
+    },
+    "MCD": {
+      "score": 0.8021,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.8034,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662623+00:00",
+      "label": "healthy"
+    },
+    "PYPL": {
+      "score": 0.6929,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.6287,
+        "weekend": 0.8
+      },
+      "timestamp": "2026-09-14T10:15:18.662630+00:00",
+      "label": "watch"
+    }
+  },
+  "positions": {
+    "USDT": {
+      "balance_usdt": 0.0
+    },
+    "NVDA": {
+      "status": "held",
+      "entry_price": 211.77,
+      "exit_price": null,
+      "quantity": 1.4159229352599518,
+      "cost_basis_usd": 300.0
+    },
+    "TSLA": {
+      "status": "held",
+      "entry_price": 358.69,
+      "exit_price": null,
+      "quantity": 0.8359586272268533,
+      "cost_basis_usd": 300.0
+    },
+    "AAPL": {
+      "status": "held",
+      "entry_price": 331.61,
+      "exit_price": null,
+      "quantity": 0.904224842435391,
+      "cost_basis_usd": 300.0
+    },
+    "AMZN": {
+      "status": "held",
+      "entry_price": 253.2,
+      "exit_price": null,
+      "quantity": 1.1842417061611377,
+      "cost_basis_usd": 300.0
+    },
+    "GOOGL": {
+      "status": "held",
+      "entry_price": 336.2,
+      "exit_price": null,
+      "quantity": 0.8918798334324808,
+      "cost_basis_usd": 300.0
+    },
+    "SPY": {
+      "status": "held",
+      "entry_price": 758.34,
+      "exit_price": null,
+      "quantity": 0.39540311733523226,
+      "cost_basis_usd": 300.0
+    },
+    "QQQ": {
+      "status": "held",
+      "entry_price": 702.64,
+      "exit_price": null,
+      "quantity": 0.42674769440965504,
+      "cost_basis_usd": 300.0
+    },
+    "KO": {
+      "status": "held",
+      "entry_price": 89.46,
+      "exit_price": null,
+      "quantity": 3.3517773306505707,
+      "cost_basis_usd": 300.0
+    },
+    "MCD": {
+      "status": "held",
+      "entry_price": 254.6,
+      "exit_price": null,
+      "quantity": 1.1777297721916733,
+      "cost_basis_usd": 300.0
+    },
+    "PYPL": {
+      "status": "held",
+      "entry_price": 53.97,
+      "exit_price": null,
+      "quantity": 5.555864369093942,
+      "cost_basis_usd": 300.0
+    }
+  },
+  "portfolio_summary": {
+    "total_usdt_cash": 0.0,
+    "total_held_cost_basis_usd": 3000.0,
+    "total_held_market_value_usd": 2996.88,
+    "total_portfolio_value_cost_basis_usd": 3000.0,
+    "total_portfolio_value_market_usd": 2996.88,
+    "valuation_status": "live",
+    "held_stocks": [
+      "NVDA",
+      "TSLA",
+      "AAPL",
+      "AMZN",
+      "GOOGL",
+      "SPY",
+      "QQQ",
+      "KO",
+      "MCD",
+      "PYPL"
+    ],
+    "sold_stocks_holding_cash": []
+  },
+  "performance_summary": {
+    "trade_count": 0,
+    "note": "no completed trades yet"
+  },
+  "events_this_run": [
+    {
+      "event_id": "eval_PYPL_20260914T101516",
+      "timestamp": "2026-09-14T10:15:16.757973+00:00",
+      "type": "sell_hold_evaluation",
+      "instrument": "PYPL",
+      "action_taken": "HOLD (warming up - only 2/5 components available, need 4)",
+      "score": 0.6929,
+      "score_label": "watch",
+      "llm_reasoning": null,
+      "llm_provider_used": null,
+      "llm_attempts": []
+    }
+  ]
+}

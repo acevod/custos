@@ -1,0 +1,75 @@
+{
+  "USDT": {
+    "balance_usdt": 0.0
+  },
+  "NVDA": {
+    "status": "held",
+    "entry_price": 211.77,
+    "exit_price": null,
+    "quantity": 1.4159229352599518,
+    "cost_basis_usd": 300.0
+  },
+  "TSLA": {
+    "status": "held",
+    "entry_price": 358.69,
+    "exit_price": null,
+    "quantity": 0.8359586272268533,
+    "cost_basis_usd": 300.0
+  },
+  "AAPL": {
+    "status": "held",
+    "entry_price": 331.61,
+    "exit_price": null,
+    "quantity": 0.904224842435391,
+    "cost_basis_usd": 300.0
+  },
+  "AMZN": {
+    "status": "held",
+    "entry_price": 253.2,
+    "exit_price": null,
+    "quantity": 1.1842417061611377,
+    "cost_basis_usd": 300.0
+  },
+  "GOOGL": {
+    "status": "held",
+    "entry_price": 336.2,
+    "exit_price": null,
+    "quantity": 0.8918798334324808,
+    "cost_basis_usd": 300.0
+  },
+  "SPY": {
+    "status": "held",
+    "entry_price": 758.34,
+    "exit_price": null,
+    "quantity": 0.39540311733523226,
+    "cost_basis_usd": 300.0
+  },
+  "QQQ": {
+    "status": "held",
+    "entry_price": 702.64,
+    "exit_price": null,
+    "quantity": 0.42674769440965504,
+    "cost_basis_usd": 300.0
+  },
+  "KO": {
+    "status": "held",
+    "entry_price": 89.46,
+    "exit_price": null,
+    "quantity": 3.3517773306505707,
+    "cost_basis_usd": 300.0
+  },
+  "MCD": {
+    "status": "held",
+    "entry_price": 254.6,
+    "exit_price": null,
+    "quantity": 1.1777297721916733,
+    "cost_basis_usd": 300.0
+  },
+  "PYPL": {
+    "status": "held",
+    "entry_price": 53.97,
+    "exit_price": null,
+    "quantity": 5.555864369093942,
+    "cost_basis_usd": 300.0
+  }
+}
