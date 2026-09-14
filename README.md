@@ -10,7 +10,7 @@
 
 Structural risk monitor for Bitget stock rTokens. Custos does not predict where a
 stock's price is going — it watches whether the *rToken wrapper itself* (spread,
-order-book depth, volume, and price-move abnormality relative to its own history) is
+top-of-book liquidity, volume, and price-move abnormality relative to its own history) is
 showing signs of liquidity stress, independent of the underlying company's performance.
 When a held token looks structurally unhealthy, an LLM evaluates whether to sell into
 USDT; when a sold token's own condition recovers, the same evaluation runs in reverse.
@@ -38,7 +38,7 @@ fundamentals.
 ```
 Every 4 hours (GitHub Actions):
   1. Pull live ticker data for 10 rTokens from Bitget's public API
-  2. Score each token's Health Score from 5 self-referential components
+  2. Score each token's Health Score from 5 components (3 historical, 2 fixed - see below)
   3. Log the full snapshot (heartbeat) — every cycle, regardless of outcome
   4. Among HELD tokens, the lowest-scoring one is ALWAYS sent to the LLM for a
      SELL / HOLD evaluation — not just when something looks wrong
@@ -49,25 +49,31 @@ Every 4 hours (GitHub Actions):
   7. State + a recomputed performance summary are committed back to the repo
 ```
 
-### Health Score — five self-referential components
+### Health Score — five components (three historical, two fixed)
 
-Every rToken is scored against **its own historical baseline**, never against another
-token or against price direction. This is what keeps the system a liquidity/structural
-monitor rather than a stock picker — a token can get flagged while its price rises, and
-stay untouched during a price drop if its own liquidity mechanics look normal.
+Three of five components are scored against **each token's own historical
+baseline** (top-of-book size, volume trend, abnormal movement) — never against
+another token or against price direction. Spread uses a fixed absolute
+threshold rather than a historical comparison, and weekend/after-hours is a
+fixed calendar-based penalty rather than data-driven. This mix is what keeps
+the system a liquidity/structural monitor rather than a stock picker — a
+token can get flagged while its price rises, and stay untouched during a
+price drop if its own liquidity mechanics look normal.
 
-| Component | Weight | What it measures |
-|---|---|---|
-| Spread | 25% | Real-time bid/ask spread |
-| Order-book depth | 20% | Bid+ask size vs this token's own recent average — a thin book is fragile even when the spread looks tight |
-| Volume trend | 20% | Current volume vs this token's own baseline |
-| Abnormal movement | 20% | How large the latest price move is relative to this token's own recent volatility — direction-agnostic, a sharp move up scores the same as a sharp move down |
-| Weekend / after-hours | 15% | A deliberate small penalty reflecting Bitget's internally-supplied liquidity outside NASDAQ/NYSE hours |
+| Component | Weight | Basis | What it measures |
+|---|---|---|---|
+| Spread | 25% | Fixed threshold | Real-time bid/ask spread |
+| Top-of-book size | 20% | Own history | Best-bid + best-ask size vs this token's own recent average — a thin book is fragile even when the spread looks tight. This is top-of-book only, not full multi-level order-book depth |
+| Volume trend | 20% | Own history | Current volume vs this token's own baseline |
+| Abnormal movement | 20% | Own history | How large the latest price move is relative to this token's own recent volatility — direction-agnostic, a sharp move up scores the same as a sharp move down |
+| Weekend / after-hours | 15% | Fixed calendar | A deliberate small penalty reflecting Bitget's internally-supplied liquidity outside NASDAQ/NYSE hours. Hardcoded UTC hours, doesn't account for DST or US market holidays |
 
 Weights are heuristic, manually tuned — not the result of backtesting, and that's
 disclosed rather than dressed up. Missing components (e.g. not enough history yet) are
 excluded and the remaining weights are renormalized, rather than treating "no data" as
-either healthy or unhealthy.
+either healthy or unhealthy. A token needs at least 4 of the 5 components available
+before it's eligible for an actual SELL/BUY_BACK decision — with fewer, the system
+logs a "warming up" state and skips the LLM call rather than acting on thin evidence.
 
 ### Decision logic — hard rules plus a genuine grey zone
 
