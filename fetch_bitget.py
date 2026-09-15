@@ -13,6 +13,7 @@ M3/M6 fixes vs the original version:
 """
 
 import time
+import math
 
 import requests
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ BASE_URL = "https://api.bitget.com/api/v3/market"
 
 MAX_RETRIES = 3          # total attempts per symbol
 BACKOFF_BASE_SECONDS = 2 # 2s, 4s between retries
+MAX_MARKET_DATA_AGE_SECONDS = 15 * 60
 
 # M6 fix: one shared session (connection pooling) for all symbols.
 SESSION = requests.Session()
@@ -68,14 +70,77 @@ def fetch_ticker(symbol: str) -> dict:
     raise last_err if last_err else RuntimeError("unreachable")
 
 
+def _finite_positive(value: float | None) -> bool:
+    return value is not None and math.isfinite(value) and value > 0
+
+
+def _finite_non_negative(value: float | None) -> bool:
+    return value is not None and math.isfinite(value) and value >= 0
+
+
+def _parse_source_timestamp(raw_ts) -> datetime:
+    """Parse Bitget's millisecond epoch timestamp into an aware UTC datetime."""
+    try:
+        ts_ms = int(raw_ts)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"invalid Bitget ticker timestamp: {raw_ts!r}") from exc
+    return datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+
+
 def calculate_spread_pct(bid: float | None, ask: float | None) -> float | None:
     """Spread from bid/ask, as a percentage of mid price."""
-    if bid is None or ask is None:
+    if not _finite_positive(bid) or not _finite_positive(ask) or ask < bid:
         return None
     mid = (bid + ask) / 2
-    if mid == 0:
+    if not math.isfinite(mid) or mid <= 0:
         return None
-    return round((ask - bid) / mid * 100, 4)
+    spread = (ask - bid) / mid * 100
+    return round(spread, 4) if math.isfinite(spread) else None
+
+
+def validate_ticker(ticker: dict) -> tuple[dict, datetime]:
+    """Validate the complete executable market-data boundary before scoring."""
+    if not isinstance(ticker, dict):
+        raise ValueError("ticker response is not an object")
+
+    source_dt = _parse_source_timestamp(ticker.get("ts"))
+    age_seconds = (datetime.now(timezone.utc) - source_dt).total_seconds()
+    if age_seconds < -60:
+        raise ValueError(f"Bitget ticker timestamp is too far in the future: {age_seconds:.1f}s")
+    if age_seconds > MAX_MARKET_DATA_AGE_SECONDS:
+        raise ValueError(f"stale Bitget ticker: {age_seconds:.0f}s old (max {MAX_MARKET_DATA_AGE_SECONDS}s)")
+
+    def number(field: str, positive: bool = False, allow_none: bool = False):
+        raw = ticker.get(field)
+        if raw in (None, "") and allow_none:
+            return None
+        try:
+            value = float(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"invalid numeric field {field}: {raw!r}") from exc
+        valid = _finite_positive(value) if positive else _finite_non_negative(value)
+        if not valid:
+            raise ValueError(f"invalid numeric field {field}: {value!r}")
+        return value
+
+    price = number("lastPrice", positive=True)
+    bid = number("bid1Price", positive=True)
+    ask = number("ask1Price", positive=True)
+    bid_size = number("bid1Size", allow_none=True)
+    ask_size = number("ask1Size", allow_none=True)
+    volume = number("volume24h", allow_none=True)
+
+    if ask < bid:
+        raise ValueError(f"invalid order book: ask {ask} < bid {bid}")
+
+    return {
+        "price": price, "bid": bid, "ask": ask,
+        "bid_size": bid_size, "ask_size": ask_size,
+        "volume_24h": volume,
+        "spread_pct": calculate_spread_pct(bid, ask),
+        "source_timestamp": source_dt.isoformat(),
+        "data_age_seconds": round(max(0.0, age_seconds), 3),
+    }, source_dt
 
 
 def fetch_bitget_data() -> list[dict]:
@@ -90,21 +155,11 @@ def fetch_bitget_data() -> list[dict]:
             if not ticker:
                 raise ValueError("empty ticker response - symbol may be wrong or not listed")
 
-            bid = float(ticker.get("bid1Price", 0)) or None
-            ask = float(ticker.get("ask1Price", 0)) or None
-            bid_size = float(ticker.get("bid1Size", 0)) or None
-            ask_size = float(ticker.get("ask1Size", 0)) or None
-
+            market, source_dt = validate_ticker(ticker)
             results.append({
                 "underlying": underlying,
                 "symbol": symbol,
-                "price": float(ticker.get("lastPrice", 0)) or None,
-                "bid": bid,
-                "ask": ask,
-                "bid_size": bid_size,
-                "ask_size": ask_size,
-                "volume_24h": float(ticker.get("volume24h", 0)) or None,
-                "spread_pct": calculate_spread_pct(bid, ask),
+                **market,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "bitget_api_v3",
                 "status": "ok",
