@@ -1,22 +1,30 @@
 """
 LLM client with automatic fallback chain.
 Order: Qwen (Bitget credit) -> Groq -> OpenRouter
-All API keys are read from environment variables (GitHub Secrets
-when running via Actions, or a local .env file for testing).
+All API keys are read from environment variables - set them with
+`export GROQ_API_KEY=...` etc. before running locally (GitHub Actions
+injects them from Secrets automatically).
 
-Note on model choice: the final fallback (OpenRouter) uses the
-"openrouter/free" auto-router rather than a pinned free-model ID.
-During development, two different hardcoded free Qwen model IDs went
-dead mid-run (deprecated / removed from the free tier without
-warning), taking down the entire fallback chain simultaneously with
-Groq's own deprecation of qwen3-32b. The auto-router avoids pinning
-to a specific model that can disappear without notice - it always
-resolves to whatever free model OpenRouter currently has live.
+Fixes vs the original version:
+  - Retries 429 / 5xx / timeouts on the SAME provider (with short
+    backoff) before falling through to the next provider - a single
+    transient rate-limit no longer permanently skips a provider for
+    the whole run.
+  - max_tokens caps each response, so a misbehaving provider can't
+    blow up the event log (or the cost) with an enormous completion.
+  - The docstring no longer claims .env support that was never
+    implemented.
 """
 
 import os
+import time
+
 import requests
 from datetime import datetime, timezone
+
+MAX_RETRIES_PER_PROVIDER = 2   # attempts per provider before falling through
+BACKOFF_BASE_SECONDS = 2
+MAX_TOKENS = 800               # cap on each completion
 
 # ── Provider config ───────────────────────────────────────────
 PROVIDERS = [
@@ -36,13 +44,15 @@ PROVIDERS = [
         "name": "openrouter",
         "base_url": "https://openrouter.ai/api/v1",
         "api_key": os.environ.get("OPENROUTER_API_KEY"),
-        "model": "openrouter/free",  # auto-router - see note above
+        "model": "openrouter/free",  # auto-router - not pinned to one free model
     },
 ]
 
 
 def _call_provider(provider: dict, prompt: str, timeout: int = 30) -> dict:
-    """Call a single provider. Returns dict {success, content, error}."""
+    """Call a single provider, retrying 429 / 5xx / transient network
+    errors on the SAME provider before giving up. Returns dict
+    {success, content, error}."""
     if not provider["api_key"]:
         return {"success": False, "error": "no_api_key_configured"}
 
@@ -55,20 +65,44 @@ def _call_provider(provider: dict, prompt: str, timeout: int = 30) -> dict:
         "model": provider["model"],
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
+        "max_tokens": MAX_TOKENS,
     }
 
-    try:
-        resp = requests.post(url, headers=headers, json=body, timeout=timeout)
-        if resp.status_code == 429:
-            return {"success": False, "error": "rate_limit_exceeded"}
-        resp.raise_for_status()
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"]
-        return {"success": True, "content": content}
-    except requests.exceptions.Timeout:
-        return {"success": False, "error": "timeout"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    retryable = (429, 500, 502, 503, 504)
+    last_error = "unknown_error"
+
+    for attempt in range(1, MAX_RETRIES_PER_PROVIDER + 1):
+        try:
+            resp = requests.post(url, headers=headers, json=body, timeout=timeout)
+            if resp.status_code in retryable:
+                last_error = ("rate_limit_exceeded" if resp.status_code == 429
+                              else f"http_{resp.status_code}")
+                if attempt < MAX_RETRIES_PER_PROVIDER:
+                    time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                    continue
+                return {"success": False, "error": last_error}
+            resp.raise_for_status()
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+            return {"success": True, "content": content}
+        except requests.exceptions.Timeout:
+            last_error = "timeout"
+            if attempt < MAX_RETRIES_PER_PROVIDER:
+                time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                continue
+            return {"success": False, "error": last_error}
+        except requests.exceptions.ConnectionError:
+            last_error = "connection_error"
+            if attempt < MAX_RETRIES_PER_PROVIDER:
+                time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                continue
+            return {"success": False, "error": last_error}
+        except Exception as e:
+            # Non-transient error (4xx other than 429, malformed JSON) -
+            # retrying won't help, fail straight through.
+            return {"success": False, "error": str(e)}
+
+    return {"success": False, "error": last_error}
 
 
 def call_llm(prompt: str) -> dict:
