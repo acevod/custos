@@ -40,13 +40,12 @@ Every 4 hours (GitHub Actions):
   1. Pull live ticker data for 10 rTokens from Bitget's public API
   2. Score each token's Health Score from 5 components (3 historical, 2 fixed - see below)
   3. Log the full snapshot (heartbeat) — every cycle, regardless of outcome
-  4. Among HELD tokens, the lowest-scoring one is ALWAYS sent to the LLM for a
-     SELL / HOLD evaluation — not just when something looks wrong
-  5. Among SOLD tokens (holding USDT), the highest-scoring one is ALWAYS sent
-     for a BUY BACK / WAIT evaluation
-  6. Executed trades are logged in the format required by the submission form
-     (timestamp, instrument, direction, price, quantity, balance change)
-  7. State + a recomputed performance summary are committed back to the repo
+  4. Find the lowest-scoring HELD token and highest-scoring SOLD token
+  5. Require enough score components and mature history before an actual action
+  6. If actionable, send the candidate to the LLM for SELL/HOLD or BUY_BACK/WAIT
+  7. Apply hard code-enforced score rules and fail-safe execution guards
+  8. Persist state before immutable logs, then recompute performance metrics
+  9. Commit updated data back to the repo
 ```
 
 ### Health Score — five components (three historical, two fixed)
@@ -77,10 +76,9 @@ logs a "warming up" state and skips the LLM call rather than acting on thin evid
 
 ### Decision logic — hard rules plus a genuine grey zone
 
-The LLM (Qwen, with Groq and OpenRouter as automatic fallbacks) is called **every
-cycle**, not only when something crosses a threshold — so the decision log stays
-populated even during calm weeks, and a healthy token reliably gets a reasoned HOLD
-rather than silence.
+The LLM (Qwen, with Groq and OpenRouter as automatic fallbacks) is used for actionable
+candidates. During the warm-up period, the system deliberately skips the LLM call and
+logs the reason instead of making a decision from insufficient evidence.
 
 ```
 Score >= 0.5   → SELL is never executed, regardless of what the LLM says (hard rule)
@@ -109,15 +107,15 @@ custos/
 ├── LICENSE
 ├── .github/workflows/
 │   └── data-pull.yml          # runs main.py every 4 hours
-└── data/                       # committed automatically by the workflow
-    ├── history.json            # rolling per-token volume/price/depth history
-    ├── positions.json           # USDT balance + per-token held/sold state
-    ├── heartbeat_log.jsonl       # every score, every cycle
-    ├── event_log.jsonl            # every LLM evaluation and its reasoning
-    ├── transaction_log.jsonl       # standard trade records (required format)
-    ├── performance_log.jsonl        # one entry per completed round-trip trade
-    ├── performance_summary.json      # win rate, realized P&L, Sharpe-like, drawdown
-    └── latest.json                    # snapshot the dashboard reads
+├── data/                       # state and runtime-generated artifacts
+│   ├── history.json             # rolling per-token volume/price/depth history
+│   ├── positions.json           # USDT balance + per-token held/sold state
+│   ├── heartbeat_log.jsonl      # every score, every cycle
+│   ├── event_log.jsonl          # decision/evaluation events
+│   ├── transaction_log.jsonl    # generated trade records
+│   ├── performance_log.jsonl    # generated completed round-trip records
+│   ├── performance_summary.json # win rate, realized P&L, Sharpe-like, drawdown
+│   └── latest.json              # snapshot the dashboard reads
 └── tests/
     └── test_custos.py
 ```
@@ -155,11 +153,17 @@ chain falls back to Groq then OpenRouter automatically.
   fix to fully recover — a real limitation, not just a theoretical one.
 - **Heuristic weights.** The five component weights were set manually based on reasoning
   about what each signal means, not fit to historical data.
-- **Partial data on first runs.** If a ticker fails to return a usable price during
-  bootstrap, its quantity stays `None`. The sell path now refuses to mutate state
-  in that case (logs HOLD with an explicit reason) instead of writing a corrupt
-  `"sold"` record. JSONL readers also skip any corrupt line so a single partial
-  write cannot take the whole scheduled run down.
+- **Paper execution model.** Execution uses the available top-of-book price and a
+  configured fee. It does not yet model full market impact or partial fills.
+- **Partial data on first runs.** If a ticker fails to return usable execution data,
+  the action path refuses to mutate state and logs an explicit HOLD/WAIT reason.
+  JSONL readers also tolerate isolated corrupt lines.
+
+## Current scope
+
+Custos is a Bitget-only, scheduled, paper/simulation system. It is designed to
+demonstrate an agentic decision loop with observable state, logs, safeguards, and
+performance accounting rather than to act as a production live-trading bot.
 
 ## License
 
