@@ -4,21 +4,11 @@ name: Data Pull and Health Check
 # manually from the Actions tab (useful for testing).
 on:
   schedule:
-    # Every 4 hours - matches the new decision cycle (was every 15
-    # min for the old cross-issuer design). This also sidesteps the
-    # GitHub Actions scheduling-delay issue we hit before: a 4-hour
-    # cadence tolerates an hour or two of queue delay without it
-    # meaningfully affecting the monitoring story.
     - cron: "0 */4 * * *"
   workflow_dispatch: {}
 
-# Needed so this workflow can commit the updated data/ files back
-# to the repo using the default GITHUB_TOKEN.
-# Prevents overlapping runs (e.g. a manual trigger firing while a
-# scheduled run is still in progress) from racing on the same
-# data/*.json state files - queues the second run instead of letting
-# both read/modify/push concurrently, which could otherwise produce
-# duplicated decisions or a lost-update git push conflict.
+# Prevents overlapping runs from racing on the same data/*.json state
+# files - queues the second run instead of running concurrently.
 concurrency:
   group: custos-state
   cancel-in-progress: false
@@ -40,6 +30,11 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      # Fail fast before any state file is touched if a regression
+      # slipped in - the decision engine runs on real state next.
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
 
       - name: Run main.py
         env:
