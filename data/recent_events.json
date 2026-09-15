@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "eval_TSLA_20260915T185604",
+    "timestamp": "2026-09-15T18:56:04.340048+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "TSLA",
+    "action_taken": "HOLD (warming up - only 2/5 components available, need 4)",
+    "score": 0.9825,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  }
+]
