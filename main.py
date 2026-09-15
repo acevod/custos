@@ -81,10 +81,17 @@ ALL_COMPONENTS = {"spread", "depth", "volume_trend", "abnormal_movement", "weeke
 # ── Small I/O helpers ──────────────────────────────────────────
 
 def load_json(path: str, default):
+    """Load JSON with a soft failure: return default on missing file
+    or unparseable content so a single corrupt state file cannot
+    take the whole agent down."""
     if not os.path.exists(path):
         return default
-    with open(path, "r") as f:
-        return json.load(f)
+    try:
+        with open(path, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"[warn] failed to load {path}: {e} - using default")
+        return default
 
 
 def save_json(path: str, data):
@@ -104,10 +111,21 @@ def append_jsonl(path: str, entry: dict):
 
 
 def read_jsonl(path: str) -> list[dict]:
+    """Read JSONL robustly. Skip blank lines and any corrupt JSON lines
+    so a single partial write can never crash the whole run."""
     if not os.path.exists(path):
         return []
+    entries = []
     with open(path, "r") as f:
-        return [json.loads(line) for line in f if line.strip()]
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError as e:
+                print(f"[warn] skipping corrupt JSONL line {line_no} in {path}: {e}")
+    return entries
 
 
 # ── Startup reconciliation (H1 safety net) ─────────────────────
@@ -295,8 +313,10 @@ def build_sell_event(stock: str, entry_price: float | None, exit_price: float | 
         "direction": "SELL", "price": exit_price, "quantity": quantity,
         "balance_change": round(proceeds, 2),
     }
-    pnl_pct = round((realized_pnl / (entry_price * quantity)) * 100, 4) \
-        if (entry_price and quantity) else None
+    # Prefer notional from entry_price * quantity; guard zero/None to
+    # avoid ZeroDivisionError or nonsense percentages.
+    notional = (entry_price * quantity) if (entry_price and quantity) else None
+    pnl_pct = round((realized_pnl / notional) * 100, 4) if notional else None
     decision_zone = "severe" if score_result["score"] < SELL_SEVERE else "grey_zone"
     performance_entry = {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
@@ -541,24 +561,37 @@ def run():
 
             if decided_sell:
                 price = by_stock[worst_stock].get("bid") or by_stock[worst_stock].get("price")
-                qty = positions[worst_stock]["quantity"]
-                entry_price = positions[worst_stock]["entry_price"]
-                cost_basis = positions[worst_stock]["cost_basis_usd"]
-                gross_proceeds = qty * price if (qty and price) else cost_basis
-                fee = gross_proceeds * TRADING_FEE_PCT
-                proceeds = gross_proceeds - fee
-                realized_pnl = round(proceeds - cost_basis, 2)
+                qty = positions[worst_stock].get("quantity")
+                entry_price = positions[worst_stock].get("entry_price")
+                cost_basis = positions[worst_stock].get("cost_basis_usd")
 
-                positions["USDT"]["balance_usdt"] = round(positions["USDT"]["balance_usdt"] + proceeds, 2)
-                positions[worst_stock] = {
-                    "status": "sold", "entry_price": entry_price, "exit_price": price,
-                    "quantity_sold": qty, "proceeds_usd": round(proceeds, 2),
-                    "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
-                }
-                event, ledger = build_sell_event(
-                    worst_stock, entry_price, price, qty, proceeds, realized_pnl,
-                    score_result, llm_result.get("content"), llm_result, now)
-                emit(event, ledger)
+                # Guard: never mutate state with missing executable data.
+                # A None quantity or price can occur after a partial
+                # bootstrap (fetch failure on first run). Treat as
+                # non-actionable rather than writing corrupt "sold" state.
+                if not qty or not price or cost_basis is None:
+                    event, ledger = build_eval_event(
+                        worst_stock, "sell_hold_evaluation",
+                        "HOLD (missing quantity/price/cost_basis - cannot execute safely)",
+                        score_result, llm_result.get("content"), llm_result, now)
+                    emit(event, ledger)
+                else:
+                    gross_proceeds = qty * price
+                    fee = gross_proceeds * TRADING_FEE_PCT
+                    proceeds = gross_proceeds - fee
+                    realized_pnl = round(proceeds - cost_basis, 2)
+
+                    positions["USDT"]["balance_usdt"] = round(
+                        positions["USDT"]["balance_usdt"] + proceeds, 2)
+                    positions[worst_stock] = {
+                        "status": "sold", "entry_price": entry_price, "exit_price": price,
+                        "quantity_sold": qty, "proceeds_usd": round(proceeds, 2),
+                        "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
+                    }
+                    event, ledger = build_sell_event(
+                        worst_stock, entry_price, price, qty, proceeds, realized_pnl,
+                        score_result, llm_result.get("content"), llm_result, now)
+                    emit(event, ledger)
             else:
                 if not llm_result.get("success"):
                     action = "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
@@ -596,13 +629,16 @@ def run():
 
             if decided_buy:
                 price = by_stock[best_stock].get("ask") or by_stock[best_stock].get("price")
-                available_cash = positions["USDT"]["balance_usdt"]
+                available_cash = positions["USDT"].get("balance_usdt") or 0.0
                 target_notional = min(INITIAL_HOLDING_USD, available_cash)
 
-                if target_notional <= 0 or not price:
+                # Guard: require positive executable price and enough cash.
+                if target_notional <= 0 or not price or price <= 0:
+                    reason = ("insufficient USDT cash" if target_notional <= 0
+                              else "missing or invalid ask/price")
                     event, ledger = build_eval_event(
                         best_stock, "buyback_wait_evaluation",
-                        "WAIT (insufficient USDT cash)", score_result,
+                        f"WAIT ({reason})", score_result,
                         llm_result.get("content"), llm_result, now)
                     emit(event, ledger)
                 else:
