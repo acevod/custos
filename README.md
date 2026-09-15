@@ -155,6 +155,11 @@ chain falls back to Groq then OpenRouter automatically.
   fix to fully recover — a real limitation, not just a theoretical one.
 - **Heuristic weights.** The five component weights were set manually based on reasoning
   about what each signal means, not fit to historical data.
+- **Partial data on first runs.** If a ticker fails to return a usable price during
+  bootstrap, its quantity stays `None`. The sell path now refuses to mutate state
+  in that case (logs HOLD with an explicit reason) instead of writing a corrupt
+  `"sold"` record. JSONL readers also skip any corrupt line so a single partial
+  write cannot take the whole scheduled run down.
 
 ## License
 
