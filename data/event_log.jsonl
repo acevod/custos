@@ -1,1 +1,0 @@
-{"event_id": "eval_MCD_20260915T192751", "timestamp": "2026-09-15T19:27:51.565122+00:00", "type": "sell_hold_evaluation", "instrument": "MCD", "action_taken": "HOLD (warming up - only 2/5 components available, need 4)", "score": 0.9852, "score_label": "warming_up", "llm_reasoning": null, "llm_provider_used": null, "llm_attempts": []}
