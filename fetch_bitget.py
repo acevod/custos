@@ -1,15 +1,29 @@
 """
 Data puller for Bitget Reality Spot Stock API - 10 rTokens covering a
-mix of volatility profiles (mega-cap tech, ETFs, consumer staples,
-fintech) so the abnormal-movement scoring has real contrast to work
-with. Public endpoint, no API key required.
+mix of volatility profiles. Public endpoint, no API key required.
 https://www.bitget.com/docs/catalog/market/market-data#get-tickers
+
+M3/M6 fixes vs the original version:
+  - Reuses a single requests.Session across all 10 symbols instead of
+    opening a fresh TLS connection per request.
+  - Retries each request with exponential backoff on 429 / 5xx /
+    connection errors, instead of giving up after one attempt. A
+    transient rate-limit no longer silently blanks a token for a whole
+    4-hour cycle.
 """
+
+import time
 
 import requests
 from datetime import datetime, timezone
 
 BASE_URL = "https://api.bitget.com/api/v3/market"
+
+MAX_RETRIES = 3          # total attempts per symbol
+BACKOFF_BASE_SECONDS = 2 # 2s, 4s between retries
+
+# M6 fix: one shared session (connection pooling) for all symbols.
+SESSION = requests.Session()
 
 SYMBOLS = {
     "NVDA": "rNVDAUSDT",
@@ -26,14 +40,32 @@ SYMBOLS = {
 
 
 def fetch_ticker(symbol: str) -> dict:
-    """Fetch full ticker: lastPrice, bid1/ask1 price+size, volume24h."""
+    """Fetch full ticker: lastPrice, bid1/ask1 price+size, volume24h.
+    Retries up to MAX_RETRIES times with linear backoff on 429, 5xx
+    and connection-level errors; re-raises the last error when the
+    retries are exhausted (the caller converts it to a per-symbol
+    error entry, exactly as before)."""
     url = f"{BASE_URL}/tickers"
     params = {"category": "SPOT", "symbol": symbol}
-    resp = requests.get(url, params=params, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    rows = data.get("data", [])
-    return rows[0] if rows else {}
+    last_err = None
+
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            resp = SESSION.get(url, params=params, timeout=10)
+            if resp.status_code == 429 or resp.status_code >= 500:
+                if attempt < MAX_RETRIES:
+                    time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                    continue
+            resp.raise_for_status()
+            rows = resp.json().get("data", [])
+            return rows[0] if rows else {}
+        except requests.exceptions.RequestException as e:
+            last_err = e
+            if attempt < MAX_RETRIES:
+                time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                continue
+            raise
+    raise last_err if last_err else RuntimeError("unreachable")
 
 
 def calculate_spread_pct(bid: float | None, ask: float | None) -> float | None:
