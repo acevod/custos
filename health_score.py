@@ -44,6 +44,7 @@ as such in the project write-up.
 
 from datetime import datetime, timezone
 from statistics import mean, stdev
+import math
 
 WEIGHTS = {
     "spread": 0.25,
@@ -60,7 +61,7 @@ HISTORY_WINDOW = 42  # ~7 days at 4-hour cadence - spans a full weekday+weekend 
 
 def score_spread(spread_pct: float | None) -> float | None:
     """Heuristic curve: 0% spread -> 1.0, 1%+ spread -> ~0."""
-    if spread_pct is None:
+    if spread_pct is None or not math.isfinite(spread_pct) or spread_pct < 0:
         return None
     return round(max(0.0, 1.0 - (spread_pct / 1.0)), 4)
 
@@ -74,10 +75,15 @@ def score_depth(bid_size: float | None, ask_size: float | None,
     average. A thin book relative to its own normal depth is a
     fragility signal even when the spread itself still looks tight.
     """
-    if bid_size is None or ask_size is None or len(depth_history) < 3:
+    if (bid_size is None or ask_size is None or
+            not math.isfinite(bid_size) or not math.isfinite(ask_size) or
+            bid_size < 0 or ask_size < 0 or len(depth_history) < 3):
+        return None
+    clean_history = [x for x in depth_history if math.isfinite(x) and x >= 0]
+    if len(clean_history) < 3:
         return None
     current_depth = bid_size + ask_size
-    baseline = mean(depth_history)
+    baseline = mean(clean_history)
     if baseline == 0:
         return None
     ratio = current_depth / baseline
@@ -88,9 +94,13 @@ def score_depth(bid_size: float | None, ask_size: float | None,
 
 def score_volume_trend(current_volume: float | None, volume_history: list[float]) -> float | None:
     """Current volume vs its own recent baseline."""
-    if current_volume is None or len(volume_history) < 3:
+    if (current_volume is None or not math.isfinite(current_volume) or
+            current_volume < 0 or len(volume_history) < 3):
         return None
-    baseline = mean(volume_history)
+    clean_history = [x for x in volume_history if math.isfinite(x) and x >= 0]
+    if len(clean_history) < 3:
+        return None
+    baseline = mean(clean_history)
     if baseline == 0:
         return None
     ratio = current_volume / baseline
@@ -114,19 +124,24 @@ def score_abnormal_movement(price_history: list[float], current_price: float | N
     Needs at least 3 past prices (2 historical returns) plus a
     current price to be meaningful.
     """
-    if current_price is None or len(price_history) < 3:
+    if (current_price is None or not math.isfinite(current_price) or
+            current_price <= 0 or len(price_history) < 3):
+        return None
+
+    clean_prices = [p for p in price_history if math.isfinite(p) and p > 0]
+    if len(clean_prices) < 3:
         return None
 
     historical_returns = []
-    for i in range(1, len(price_history)):
-        prev, curr = price_history[i - 1], price_history[i]
+    for i in range(1, len(clean_prices)):
+        prev, curr = clean_prices[i - 1], clean_prices[i]
         if prev:
             historical_returns.append((curr - prev) / prev * 100)
 
     if len(historical_returns) < 2:
         return None
 
-    last_hist_price = price_history[-1]
+    last_hist_price = clean_prices[-1]
     if not last_hist_price:
         return None
     latest_return = (current_price - last_hist_price) / last_hist_price * 100
@@ -219,7 +234,12 @@ def score_stock(data: dict, history: dict) -> dict:
         "weekend": score_weekend_afterhours(now),
     }
     result = calculate_composite_score(components)
-    result["label"] = classify_score(result["score"])
+    # A partial score is useful for observability, but it must not be
+    # presented as fully healthy when the action gate has not matured.
+    if len(result.get("components_used", [])) < 4:
+        result["label"] = "warming_up"
+    else:
+        result["label"] = classify_score(result["score"])
     return result
 
 
