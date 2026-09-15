@@ -166,5 +166,45 @@ class TestScoringHelpers(unittest.TestCase):
         self.assertIsNone(result["score"])
 
 
+class TestRobustIO(unittest.TestCase):
+    """Regression tests for the hardened JSON/JSONL loaders that
+    prevent a single corrupt line or file from crashing the agent."""
+
+    def setUp(self):
+        import tempfile
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.dir = self._tmpdir.name
+
+    def tearDown(self):
+        self._tmpdir.cleanup()
+
+    def test_read_jsonl_skips_corrupt_lines(self):
+        path = os.path.join(self.dir, "test.jsonl")
+        with open(path, "w") as f:
+            f.write('{"ok": 1}\n')
+            f.write('this is not json\n')
+            f.write('{"ok": 2}\n')
+            f.write('\n')
+            f.write('{broken\n')
+        entries = main.read_jsonl(path)
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[0]["ok"], 1)
+        self.assertEqual(entries[1]["ok"], 2)
+
+    def test_read_jsonl_missing_file(self):
+        self.assertEqual(main.read_jsonl(os.path.join(self.dir, "nope.jsonl")), [])
+
+    def test_load_json_corrupt_returns_default(self):
+        path = os.path.join(self.dir, "bad.json")
+        with open(path, "w") as f:
+            f.write("{not valid json")
+        result = main.load_json(path, {"fallback": True})
+        self.assertEqual(result, {"fallback": True})
+
+    def test_load_json_missing_returns_default(self):
+        result = main.load_json(os.path.join(self.dir, "missing.json"), [])
+        self.assertEqual(result, [])
+
+
 if __name__ == "__main__":
     unittest.main()
