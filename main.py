@@ -10,21 +10,19 @@ Run on a schedule (every 4 hours via GitHub Actions). Each run:
   5. Among HELD tokens, finds the lowest-scoring one and ALWAYS asks
      the LLM to evaluate SELL vs HOLD. Score >= SELL_CEILING is a
      hard rule against selling (code-enforced, can't be overridden).
-     Below SELL_SEVERE the structural case for selling is strong;
-     between SELL_SEVERE and SELL_CEILING is a genuine grey zone
-     where the LLM's own judgment about whether the anomaly looks
-     like durable structural stress vs a temporary/explainable
-     artifact actually determines the outcome.
   6. Among SOLD tokens (holding pooled USDT), finds the
      highest-scoring one and ALWAYS asks the LLM to evaluate
      BUY BACK vs WAIT, with the mirrored grey-zone logic.
-  7. On an actual SELL: proceeds credit the pooled USDT balance;
-     the stock's record keeps entry_price and adds exit_price, so
-     the full round-trip is visible. A matching entry is appended to
-     performance_log.jsonl for realized P&L / win-rate / drawdown.
-  8. On an actual BUY BACK: draws up to $300 from the pooled USDT
-     balance (capped at whatever's actually available).
-  9. Persists state + a recomputed performance_summary.json.
+  7. Persists state FIRST (atomically), then appends immutable logs.
+     (H1 fix: state is durable before any ledger entry exists, so a
+     crash can never leave a phantom trade in the performance log
+     that positions.json doesn't know about. A startup reconciliation
+     pass catches any pre-existing divergence and freezes the
+     affected stock instead of acting on inconsistent state.)
+  8. A stock is only actionable once it has BOTH enough score
+     components AND enough mature history (H2 fix) - 4/5 components
+     AND >= MIN_HISTORY_POINTS baseline points. Early baselines of
+     3 samples are too noisy to trade on.
 
 State files (all under data/):
   history.json           - rolling volume/price/depth history per stock
@@ -65,23 +63,18 @@ TRADING_FEE_PCT = 0.0005  # 0.05% maker/taker, matching Bitget's disclosed rToke
 # Hard rules (code-enforced, cannot be overridden by the LLM):
 SELL_CEILING = 0.5       # never sell if score >= this
 BUYBACK_FLOOR = 0.7      # never buy back if score < this
-# Inside these bounds is the genuine "grey zone" - severity markers
-# used only to give the LLM context in the prompt, not extra code
-# branching:
 SELL_SEVERE = 0.25       # below this, the structural case for selling is strong
 BUYBACK_STRONG = 0.9     # above this, the case for buying back is strong
 
 # A token needs at least this many of the 5 Health Score components
-# available before it's eligible for an ACTUAL action (SELL or
-# BUY_BACK) - not just a displayed score. Early on, a token may only
-# have spread + weekend (2/5, since those don't need history) while
-# depth/volume_trend/abnormal_movement are still None waiting for
-# enough historical points. A composite score built from only 2/5
-# signals can still cross a threshold by chance, and acting on that
-# thin evidence would undermine the whole "structural risk monitor"
-# premise. The dashboard is still free to display a preliminary
-# score - only the decision engine is gated by this.
+# available before it's eligible for an ACTUAL action.
 MIN_COMPONENTS_FOR_ACTION = 4
+# H2 fix: AND its historical baseline must be mature. Each historical
+# component activates at just 3 samples, which is far too noisy to
+# trade on. Require a baseline spanning at least ~2 days (12 points at
+# the 4-hour cadence). Raise toward HISTORY_WINDOW (42) for stricter
+# maturity.
+MIN_HISTORY_POINTS = 12
 ALL_COMPONENTS = {"spread", "depth", "volume_trend", "abnormal_movement", "weekend"}
 
 
@@ -95,9 +88,13 @@ def load_json(path: str, default):
 
 
 def save_json(path: str, data):
+    """Atomic write: temp file + os.replace, so a crash mid-write can
+    never leave a half-written JSON file behind (H1 fix)."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
+    tmp_path = f"{path}.tmp"
+    with open(tmp_path, "w") as f:
         json.dump(data, f, indent=2)
+    os.replace(tmp_path, path)
 
 
 def append_jsonl(path: str, entry: dict):
@@ -113,19 +110,70 @@ def read_jsonl(path: str) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+# ── Startup reconciliation (H1 safety net) ─────────────────────
+
+def count_ledger_entries(performance_path: str = PERFORMANCE_LOG_PATH,
+                          event_path: str = EVENT_LOG_PATH) -> tuple[dict, dict]:
+    """Counts sells per stock (performance log) and buy-backs per stock
+    (event log). Pure read - separated from find_ledger_mismatches so
+    both are unit-testable."""
+    sells, buys = {}, {}
+    for t in read_jsonl(performance_path):
+        inst = t.get("instrument")
+        if inst:
+            sells[inst] = sells.get(inst, 0) + 1
+    for e in read_jsonl(event_path):
+        if e.get("type") == "buy_back" and e.get("instrument"):
+            inst = e["instrument"]
+            buys[inst] = buys.get(inst, 0) + 1
+    return sells, buys
+
+
+def find_ledger_mismatches(positions: dict, sells: dict, buys: dict) -> dict[str, str]:
+    """Every SELL must leave the stock 'sold' until a BUY_BACK returns
+    it to 'held'. If the ledgers and positions.json disagree, the state
+    is inconsistent (e.g. a past crash between logging and saving) -
+    return a per-stock explanation instead of acting on it."""
+    problems = {}
+    for stock in STOCKS:
+        if stock not in positions:
+            continue
+        expected_sold = sells.get(stock, 0) - buys.get(stock, 0)
+        actual_sold = 1 if positions[stock].get("status") == "sold" else 0
+        if expected_sold != actual_sold:
+            problems[stock] = (
+                f"ledger mismatch: {sells.get(stock, 0)} sell(s) / "
+                f"{buys.get(stock, 0)} buy-back(s) recorded, but "
+                f"positions.json says status={positions[stock].get('status')}"
+            )
+    return problems
+
+
+# ── Action eligibility (H2 fix) ────────────────────────────────
+
+def check_actionable(stock: str, score_result: dict, history: dict) -> tuple[bool, str | None]:
+    """A stock may only produce an ACTUAL trade if it has (a) enough
+    score components AND (b) a mature enough historical baseline.
+    Returns (eligible, reason_if_not)."""
+    n_components = len(score_result.get("components_used", []))
+    if n_components < MIN_COMPONENTS_FOR_ACTION:
+        return False, (f"only {n_components}/5 components available, need "
+                       f"{MIN_COMPONENTS_FOR_ACTION}")
+    hist_points = len(history.get(stock, {}).get("price", []))
+    if hist_points < MIN_HISTORY_POINTS:
+        return False, (f"history still warming up - {hist_points}/"
+                       f"{MIN_HISTORY_POINTS} baseline points")
+    return True, None
+
+
 # ── State bootstrapping ────────────────────────────────────────
 
 def init_positions(by_stock: dict) -> dict:
     """
     First-run bootstrap. USDT starts as its own explicit position at
-    $0 (all capital is deployed into stocks at the start - nothing
-    is held as cash yet). Each stock enters HELD using the ASK price
-    (the executable buy-side price, not lastPrice) minus the trading
-    fee, from this run's fetch; quantity is fixed at this point and
-    not recalculated later, which is what makes sell proceeds
-    genuinely diverge from $300 depending on how price moved since
-    entry. Falls back to lastPrice if ask is unavailable for some
-    reason, rather than failing the entry entirely.
+    $0. Each stock enters HELD using the ASK price (the executable
+    buy-side price, not lastPrice) minus the trading fee. Falls back
+    to lastPrice if ask is unavailable, rather than failing the entry.
     """
     positions = {"USDT": {"balance_usdt": 0.0}}
     for stock in STOCKS:
@@ -218,15 +266,12 @@ def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     """
     Strictly parses the LLM's decision from the first line of its
     reply. Requires an EXACT match (after stripping whitespace and
-    common markdown/punctuation wrapping) against one of valid_words -
-    e.g. {"SELL", "HOLD"}. This is deliberately NOT a substring
-    search: a naive `"SELL" in first_line` check would incorrectly
-    match a line like "HOLD — SELL is not justified", silently
-    turning a HOLD into a SELL. Returns None (unparseable) for
-    anything that isn't an exact match, including a total LLM outage
-    (no text at all) - the caller treats None the same as "no
-    action", which is the safer failure mode for a risk-monitoring
-    system.
+    common markdown/punctuation wrapping) against one of valid_words.
+    Deliberately NOT a substring search: a naive `"SELL" in first_line`
+    check would incorrectly match "HOLD - SELL is not justified",
+    silently turning a HOLD into a SELL. Returns None (unparseable)
+    for anything that isn't an exact match - the caller treats None
+    the same as "no action", the safer failure mode.
     """
     if not llm_text:
         return None
@@ -235,31 +280,30 @@ def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     return cleaned if cleaned in valid_words else None
 
 
-# ── Transaction + event + performance logging ───────────────────
+# ── Event builders (pure - logging happens in persist_logs) ─────
+# H1 fix: these functions no longer touch disk. run() collects the
+# events + ledger entries in memory, saves state first, and only then
+# flushes them to disk via persist_logs(). A crash therefore can never
+# produce a ledger entry whose state was never saved.
 
-def log_sell(stock: str, entry_price: float | None, exit_price: float | None,
-             quantity: float | None, proceeds: float, realized_pnl: float,
-             score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+def build_sell_event(stock: str, entry_price: float | None, exit_price: float | None,
+                     quantity: float | None, proceeds: float, realized_pnl: float,
+                     score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> tuple[dict, list]:
     event_id = f"sell_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
-    append_jsonl(TRANSACTION_LOG_PATH, {
+    transaction_entry = {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
         "direction": "SELL", "price": exit_price, "quantity": quantity,
         "balance_change": round(proceeds, 2),
-    })
+    }
     pnl_pct = round((realized_pnl / (entry_price * quantity)) * 100, 4) \
         if (entry_price and quantity) else None
-    # Classify which zone triggered this - severe (score < SELL_SEVERE, an
-    # easy/obvious call) vs grey zone (SELL_SEVERE <= score < SELL_CEILING,
-    # where the LLM's own judgment actually decided the outcome). This is
-    # what lets Layer 2 (decision quality) be assessed separately from
-    # Layer 1 (the realized dollar P&L below).
     decision_zone = "severe" if score_result["score"] < SELL_SEVERE else "grey_zone"
-    append_jsonl(PERFORMANCE_LOG_PATH, {
+    performance_entry = {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
         "entry_price": entry_price, "exit_price": exit_price, "quantity": quantity,
         "realized_pnl_usd": realized_pnl, "realized_pnl_pct": pnl_pct,
         "score_at_decision": score_result["score"], "decision_zone": decision_zone,
-    })
+    }
     event = {
         "event_id": event_id, "timestamp": now.isoformat(), "type": "sell",
         "instrument": stock, "entry_price": entry_price, "exit_price": exit_price,
@@ -268,18 +312,19 @@ def log_sell(stock: str, entry_price: float | None, exit_price: float | None,
         "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
         "llm_attempts": llm_meta.get("attempts"),
     }
-    append_jsonl(EVENT_LOG_PATH, event)
-    return event
+    return event, [(TRANSACTION_LOG_PATH, transaction_entry),
+                   (PERFORMANCE_LOG_PATH, performance_entry)]
 
 
-def log_buyback(stock: str, price: float | None, quantity: float | None,
-                 cost: float, score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
+def build_buyback_event(stock: str, price: float | None, quantity: float | None,
+                        cost: float, score_result: dict, reasoning: str,
+                        llm_meta: dict, now: datetime) -> tuple[dict, list]:
     event_id = f"buy_{stock}_{now.strftime('%Y%m%dT%H%M%S')}"
-    append_jsonl(TRANSACTION_LOG_PATH, {
+    transaction_entry = {
         "event_id": event_id, "timestamp": now.isoformat(), "instrument": stock,
         "direction": "BUY", "price": price, "quantity": quantity,
         "balance_change": round(-cost, 2),
-    })
+    }
     decision_zone = "strong" if score_result["score"] >= BUYBACK_STRONG else "grey_zone"
     event = {
         "event_id": event_id, "timestamp": now.isoformat(), "type": "buy_back",
@@ -288,23 +333,31 @@ def log_buyback(stock: str, price: float | None, quantity: float | None,
         "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
         "llm_attempts": llm_meta.get("attempts"),
     }
-    append_jsonl(EVENT_LOG_PATH, event)
-    return event
+    return event, [(TRANSACTION_LOG_PATH, transaction_entry)]
 
 
-def log_evaluation_only(stock: str, decision_type: str, action_taken: str,
-                         score_result: dict, reasoning: str, llm_meta: dict, now: datetime) -> dict:
-    """Logs an LLM evaluation that did NOT result in a transaction (HOLD/WAIT)."""
+def build_eval_event(stock: str, decision_type: str, action_taken: str,
+                     score_result: dict, reasoning: str | None, llm_meta: dict,
+                     now: datetime) -> tuple[dict, list]:
+    """Builds an event for an LLM evaluation that did NOT result in a
+    transaction (HOLD/WAIT/warming-up/skipped)."""
     event = {
         "event_id": f"eval_{stock}_{now.strftime('%Y%m%dT%H%M%S')}",
         "timestamp": now.isoformat(), "type": decision_type, "instrument": stock,
-        "action_taken": action_taken, "score": score_result["score"],
-        "score_label": score_result["label"],
+        "action_taken": action_taken, "score": score_result.get("score"),
+        "score_label": score_result.get("label"),
         "llm_reasoning": reasoning, "llm_provider_used": llm_meta.get("provider_used"),
         "llm_attempts": llm_meta.get("attempts"),
     }
+    return event, []
+
+
+def persist_logs(event: dict, ledger_entries: list) -> None:
+    """H1 fix: flushes ledger entries (transaction/performance logs)
+    BEFORE the event log, and only ever called after state is durable."""
+    for path, entry in ledger_entries:
+        append_jsonl(path, entry)
     append_jsonl(EVENT_LOG_PATH, event)
-    return event
 
 
 # ── Portfolio + performance summaries ───────────────────────────
@@ -312,15 +365,9 @@ def log_evaluation_only(stock: str, decision_type: str, action_taken: str,
 def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
     """
     Reports BOTH cost-basis totals (what's actually been transacted -
-    the basis for realized P&L) and current mark-to-market totals
-    (what the portfolio is worth right now at live prices). Neither
-    figure feeds back into the SELL/BUY decision logic, which stays
-    purely structural - these are reporting-only numbers.
-
-    If a held token's live price is unavailable, its market value
-    falls back to cost basis so the total is still computable - but
-    that fallback is tracked and surfaced as valuation_status, rather
-    than silently presenting a stale number as a confirmed live one.
+    the basis for realized P&L) and current mark-to-market totals.
+    Mark-to-market is net of the exit fee that would actually be paid
+    on liquidation, so the headline number is realizable, not gross.
     """
     usdt = positions["USDT"]["balance_usdt"]
     held_cost_basis, held_market_value = 0.0, 0.0
@@ -334,7 +381,8 @@ def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
             held_cost_basis += p["cost_basis_usd"]
             current_price = by_stock.get(stock, {}).get("price")
             if current_price and p.get("quantity"):
-                held_market_value += p["quantity"] * current_price
+                # L4 fix: net of the exit fee that selling would incur
+                held_market_value += p["quantity"] * current_price * (1 - TRADING_FEE_PCT)
             else:
                 held_market_value += p["cost_basis_usd"]
                 valuation_is_stale = True
@@ -403,14 +451,32 @@ def run():
     positions = load_json(POSITIONS_PATH, None)
     if positions is None:
         positions = init_positions(by_stock)
+        # H1 fix: bootstrap state must be durable before anything else
+        save_json(POSITIONS_PATH, positions)
+
+    # H1 safety net: if a previous run died between writing ledger
+    # entries and saving state, the ledgers and positions.json will
+    # disagree. Freeze the affected stocks and surface a loud warning
+    # instead of trading on inconsistent state.
+    sells, buys = count_ledger_entries()
+    mismatches = find_ledger_mismatches(positions, sells, buys)
+    frozen = set(mismatches)
+    for stock, reason in mismatches.items():
+        append_jsonl(EVENT_LOG_PATH, {
+            "event_id": f"reconcile_{stock}_{now.strftime('%Y%m%dT%H%M%S')}",
+            "timestamp": now.isoformat(), "type": "state_reconciliation_warning",
+            "instrument": stock, "action_taken": "FROZEN (manual review required)",
+            "warning": reason, "llm_reasoning": None,
+            "llm_provider_used": None, "llm_attempts": [],
+        })
+        print(f"  !! {stock}: {reason} - frozen for this run")
 
     scores = {}
     heartbeat_scores, heartbeat_labels = {}, {}
     for stock in STOCKS:
         entry = by_stock.get(stock, {"status": "error"})
         # Score against the PRE-update history (this run's values are
-        # not yet included) - see health_score.py's score_stock
-        # docstring for why this ordering matters.
+        # not yet included).
         stock_history = history.get(stock, {"volume": [], "price": [], "depth": []})
         result = score_stock(entry, stock_history) if entry.get("status") == "ok" else \
             {"score": None, "label": "unknown", "components_raw": {}, "components_used": []}
@@ -426,25 +492,47 @@ def run():
         "timestamp": now.isoformat(), "scores": heartbeat_scores, "labels": heartbeat_labels,
     })
 
-    events_this_run = []
+    events_this_run = []   # (event, ledger_entries) - flushed after state is saved
+    logs_this_run = []
+
+    def emit(event, ledger_entries):
+        events_this_run.append(event)
+        logs_this_run.append((event, ledger_entries))
+
+    # M3 observability: explicitly log when a held/sold stock could
+    # not be evaluated because its market data fetch failed - a
+    # skipped evaluation is no longer silent.
+    for stock in STOCKS:
+        if by_stock.get(stock, {}).get("status") != "ok" and stock in positions:
+            entry_status = by_stock.get(stock, {}).get("status", "missing")
+            if positions[stock].get("status") in ("held", "sold"):
+                event, ledger = build_eval_event(
+                    stock, "evaluation_skipped",
+                    f"SKIPPED (market data unavailable - fetch status: {entry_status})",
+                    {"score": None, "label": "unknown"}, None,
+                    {"provider_used": None, "attempts": []}, now,
+                )
+                logs_this_run.append((event, ledger))
 
     # --- Evaluate the lowest-scoring HELD stock ---
-    held = [s for s in STOCKS if positions[s]["status"] == "held" and scores[s]["score"] is not None]
+    held = [s for s in STOCKS
+            if positions[s]["status"] == "held"
+            and scores[s]["score"] is not None
+            and s not in frozen]
     if held:
         worst_stock = min(held, key=lambda s: scores[s]["score"])
         score_result = scores[worst_stock]
+        eligible, reason = check_actionable(worst_stock, score_result, history)
 
-        if len(score_result["components_used"]) < MIN_COMPONENTS_FOR_ACTION:
-            # Not enough historical signal yet - skip the LLM call
-            # entirely rather than evaluating with partial data and
-            # then gating the outcome. Distinct state from a genuine
-            # HOLD (see MIN_COMPONENTS_FOR_ACTION above).
-            n = len(score_result["components_used"])
-            event = log_evaluation_only(
+        if not eligible:
+            # Not enough signal/maturity yet - skip the LLM call
+            # entirely rather than acting on thin evidence.
+            event, ledger = build_eval_event(
                 worst_stock, "sell_hold_evaluation",
-                f"HOLD (warming up - only {n}/5 components available, need {MIN_COMPONENTS_FOR_ACTION})",
+                f"HOLD (warming up - {reason})",
                 score_result, None, {"provider_used": None, "attempts": []}, now,
             )
+            emit(event, ledger)
         else:
             prompt = build_sell_hold_prompt(worst_stock, score_result)
             llm_result = call_llm(prompt)
@@ -467,8 +555,10 @@ def run():
                     "quantity_sold": qty, "proceeds_usd": round(proceeds, 2),
                     "realized_pnl_usd": realized_pnl, "sold_timestamp": now.isoformat(),
                 }
-                event = log_sell(worst_stock, entry_price, price, qty, proceeds, realized_pnl,
-                                  score_result, llm_result.get("content"), llm_result, now)
+                event, ledger = build_sell_event(
+                    worst_stock, entry_price, price, qty, proceeds, realized_pnl,
+                    score_result, llm_result.get("content"), llm_result, now)
+                emit(event, ledger)
             else:
                 if not llm_result.get("success"):
                     action = "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
@@ -476,23 +566,28 @@ def run():
                     action = "HOLD (response unparseable - fail-safe default, not a confirmed decision)"
                 else:
                     action = "HOLD"
-                event = log_evaluation_only(worst_stock, "sell_hold_evaluation", action,
-                                             score_result, llm_result.get("content"), llm_result, now)
-        events_this_run.append(event)
+                event, ledger = build_eval_event(worst_stock, "sell_hold_evaluation", action,
+                                                 score_result, llm_result.get("content"),
+                                                 llm_result, now)
+                emit(event, ledger)
 
     # --- Evaluate the highest-scoring SOLD stock ---
-    sold = [s for s in STOCKS if positions[s]["status"] == "sold" and scores[s]["score"] is not None]
+    sold = [s for s in STOCKS
+            if positions[s]["status"] == "sold"
+            and scores[s]["score"] is not None
+            and s not in frozen]
     if sold:
         best_stock = max(sold, key=lambda s: scores[s]["score"])
         score_result = scores[best_stock]
+        eligible, reason = check_actionable(best_stock, score_result, history)
 
-        if len(score_result["components_used"]) < MIN_COMPONENTS_FOR_ACTION:
-            n = len(score_result["components_used"])
-            event = log_evaluation_only(
+        if not eligible:
+            event, ledger = build_eval_event(
                 best_stock, "buyback_wait_evaluation",
-                f"WAIT (warming up - only {n}/5 components available, need {MIN_COMPONENTS_FOR_ACTION})",
+                f"WAIT (warming up - {reason})",
                 score_result, None, {"provider_used": None, "attempts": []}, now,
             )
+            emit(event, ledger)
         else:
             prompt = build_buyback_wait_prompt(best_stock, score_result)
             llm_result = call_llm(prompt)
@@ -505,9 +600,11 @@ def run():
                 target_notional = min(INITIAL_HOLDING_USD, available_cash)
 
                 if target_notional <= 0 or not price:
-                    event = log_evaluation_only(best_stock, "buyback_wait_evaluation",
-                                                 "WAIT (insufficient USDT cash)", score_result,
-                                                 llm_result.get("content"), llm_result, now)
+                    event, ledger = build_eval_event(
+                        best_stock, "buyback_wait_evaluation",
+                        "WAIT (insufficient USDT cash)", score_result,
+                        llm_result.get("content"), llm_result, now)
+                    emit(event, ledger)
                 else:
                     qty = (target_notional * (1 - TRADING_FEE_PCT)) / price
                     positions["USDT"]["balance_usdt"] = round(available_cash - target_notional, 2)
@@ -515,8 +612,10 @@ def run():
                         "status": "held", "entry_price": price, "exit_price": None,
                         "quantity": qty, "cost_basis_usd": round(target_notional, 2),
                     }
-                    event = log_buyback(best_stock, price, qty, target_notional,
-                                         score_result, llm_result.get("content"), llm_result, now)
+                    event, ledger = build_buyback_event(
+                        best_stock, price, qty, target_notional,
+                        score_result, llm_result.get("content"), llm_result, now)
+                    emit(event, ledger)
             else:
                 if not llm_result.get("success"):
                     action = "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
@@ -524,15 +623,23 @@ def run():
                     action = "WAIT (response unparseable - fail-safe default, not a confirmed decision)"
                 else:
                     action = "WAIT"
-                event = log_evaluation_only(best_stock, "buyback_wait_evaluation", action,
-                                             score_result, llm_result.get("content"), llm_result, now)
-        events_this_run.append(event)
+                event, ledger = build_eval_event(best_stock, "buyback_wait_evaluation", action,
+                                                 score_result, llm_result.get("content"),
+                                                 llm_result, now)
+                emit(event, ledger)
 
-    performance_summary = compute_performance_metrics()
-
+    # ── Persistence ordering (H1 fix) ──
+    # 1) State first, atomically: a crash from here on can at worst
+    #    lose a log entry, never create a phantom trade.
     save_json(HISTORY_PATH, history)
     save_json(POSITIONS_PATH, positions)
+    # 2) Immutable ledger entries, only after state is durable.
+    for event, ledger_entries in logs_this_run:
+        persist_logs(event, ledger_entries)
+    # 3) Summary reflects this run's freshly-flushed ledger entries.
+    performance_summary = compute_performance_metrics()
     save_json(PERFORMANCE_SUMMARY_PATH, performance_summary)
+    # 4) Dashboard snapshot last - it embeds events + summary.
     save_json(LATEST_PATH, {
         "timestamp": now.isoformat(), "scores": scores, "positions": positions,
         "portfolio_summary": compute_portfolio_summary(positions, by_stock),
