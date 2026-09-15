@@ -377,11 +377,22 @@
   }
 
   async function fetchJSONL(path, limit) {
-    const res = await fetch(path, { cache: 'no-store' });
+    // event_log.jsonl is append-only and can grow indefinitely.
+    // main.py maintains a bounded JSON feed for the dashboard.
+    const dashboardPath = path.endsWith('event_log.jsonl')
+      ? 'data/recent_events.json'
+      : path;
+    const res = await fetch(dashboardPath, { cache: 'no-store' });
     if (!res.ok) return [];
+    if (dashboardPath.endsWith('.json')) {
+      try {
+        const data = await res.json();
+        return Array.isArray(data) ? data.slice(0, limit || 20) : [];
+      } catch (e) {
+        return [];
+      }
+    }
     const text = await res.text();
-    // M5 fix: skip individual corrupt lines - one bad row must not
-    // take down the entire dashboard.
     const lines = text.trim().split('\n').filter(Boolean).flatMap(l => {
       try { return [JSON.parse(l)]; } catch (e) { return []; }
     });
