@@ -118,6 +118,8 @@ custos/
     ├── performance_log.jsonl        # one entry per completed round-trip trade
     ├── performance_summary.json      # win rate, realized P&L, Sharpe-like, drawdown
     └── latest.json                    # snapshot the dashboard reads
+└── tests/
+    └── test_custos.py
 ```
 
 ## Running it yourself
