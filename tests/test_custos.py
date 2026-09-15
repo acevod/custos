@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
 from health_score import score_spread, score_weekend_afterhours, calculate_composite_score
+from fetch_bitget import validate_ticker
 
 
 class TestParseDecision(unittest.TestCase):
@@ -194,7 +195,14 @@ class TestRobustIO(unittest.TestCase):
     def test_read_jsonl_missing_file(self):
         self.assertEqual(main.read_jsonl(os.path.join(self.dir, "nope.jsonl")), [])
 
-    def test_load_json_corrupt_returns_default(self):
+    def test_load_json_corrupt_fails_closed_when_required(self):
+        path = os.path.join(self.dir, "bad.json")
+        with open(path, "w") as f:
+            f.write("{not valid json")
+        with self.assertRaises(main.StateCorruptionError):
+            main.load_json(path, {"fallback": True}, required=True)
+
+    def test_load_json_corrupt_can_still_use_default_for_non_state_data(self):
         path = os.path.join(self.dir, "bad.json")
         with open(path, "w") as f:
             f.write("{not valid json")
@@ -204,6 +212,58 @@ class TestRobustIO(unittest.TestCase):
     def test_load_json_missing_returns_default(self):
         result = main.load_json(os.path.join(self.dir, "missing.json"), [])
         self.assertEqual(result, [])
+
+
+class TestMarketDataValidation(unittest.TestCase):
+    def _ticker(self, **overrides):
+        ticker = {
+            "ts": str(int(datetime.now(timezone.utc).timestamp() * 1000)),
+            "lastPrice": "100", "bid1Price": "99.9", "ask1Price": "100.1",
+            "bid1Size": "10", "ask1Size": "12", "volume24h": "1000",
+        }
+        ticker.update(overrides)
+        return ticker
+
+    def test_valid_ticker(self):
+        market, _ = validate_ticker(self._ticker())
+        self.assertEqual(market["price"], 100.0)
+        self.assertIn("source_timestamp", market)
+
+    def test_stale_ticker_rejected(self):
+        old_ts = int((datetime.now(timezone.utc).timestamp() - 3600) * 1000)
+        with self.assertRaises(ValueError):
+            validate_ticker(self._ticker(ts=str(old_ts)))
+
+    def test_non_finite_price_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_ticker(self._ticker(lastPrice="NaN"))
+
+    def test_invalid_order_book_rejected(self):
+        with self.assertRaises(ValueError):
+            validate_ticker(self._ticker(bid1Price="101", ask1Price="100"))
+
+
+class TestStateValidation(unittest.TestCase):
+    def _positions(self):
+        return {
+            "USDT": {"balance_usdt": 0.0},
+            **{s: {"status": "held", "quantity": 1.0, "cost_basis_usd": 300.0}
+               for s in main.STOCKS},
+        }
+
+    def test_valid_positions(self):
+        main.validate_positions_state(self._positions())
+
+    def test_invalid_held_quantity_rejected(self):
+        positions = self._positions()
+        positions["NVDA"]["quantity"] = 0
+        with self.assertRaises(main.StateCorruptionError):
+            main.validate_positions_state(positions)
+
+    def test_invalid_history_rejected(self):
+        history = {"NVDA": {"price": [100.0, float("nan")], "volume": [], "depth": []}}
+        with self.assertRaises(main.StateCorruptionError):
+            main.validate_history_state(history)
 
 
 if __name__ == "__main__":
