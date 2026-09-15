@@ -74,6 +74,17 @@ either healthy or unhealthy. A token needs at least 4 of the 5 components availa
 before it's eligible for an actual SELL/BUY_BACK decision — with fewer, the system
 logs a "warming up" state and skips the LLM call rather than acting on thin evidence.
 
+Eligibility for an actual action is gated on two independent things, not just the
+component count above: (1) at least 4/5 components, **and** (2) at least
+`MIN_HISTORY_POINTS` (12, ~2 days) of that token's own historical baseline. A token
+can already show 5/5 components and a "healthy"/"watch"/"red flag" label on the
+dashboard — since most components only need 3 historical samples to compute at all —
+while still being too immature on the second gate to actually be acted on. In that
+case the decision log will read "HOLD (warming up - history still warming up -
+X/12 baseline points)" even though the Holdings row for that same token doesn't say
+"warming up". This is intentional (it's two separate safety checks, not a bug), but
+worth knowing so the two sections of the dashboard don't look contradictory.
+
 ### Decision logic — hard rules plus a genuine grey zone
 
 The LLM (Qwen, with Groq and OpenRouter as automatic fallbacks) is used for actionable
@@ -112,6 +123,9 @@ custos/
 │   ├── positions.json           # USDT balance + per-token held/sold state
 │   ├── heartbeat_log.jsonl      # every score, every cycle
 │   ├── event_log.jsonl          # decision/evaluation events
+│   ├── recent_events.json       # bounded feed (last 20) the dashboard reads,
+│   │                             so it never has to download the full
+│   │                             append-only event_log.jsonl
 │   ├── transaction_log.jsonl    # generated trade records
 │   ├── performance_log.jsonl    # generated completed round-trip records
 │   ├── performance_summary.json # win rate, realized P&L, Sharpe-like, drawdown
