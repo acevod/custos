@@ -12,6 +12,7 @@ reconciliation, and the calendar/scoring helpers.
 import os
 import sys
 import unittest
+import unittest.mock
 from datetime import datetime, timezone
 
 # Make the repo root importable when discovered from tests/
@@ -45,6 +46,15 @@ class TestParseDecision(unittest.TestCase):
 
     def test_unknown_word(self):
         self.assertIsNone(main.parse_decision("UNCLEAR", {"SELL", "HOLD"}))
+
+    def test_whitespace_only_does_not_crash(self):
+        # H-1 regression: a truthy-but-blank LLM response ("   ",
+        # "\n\n") used to slip past `if not llm_text` and then crash
+        # with IndexError on splitlines()[0]. Must return None
+        # (treated as "unparseable", the safe fail-closed outcome),
+        # never raise.
+        self.assertIsNone(main.parse_decision("   ", {"SELL", "HOLD"}))
+        self.assertIsNone(main.parse_decision("\n\n\t", {"SELL", "HOLD"}))
 
 
 class TestCheckActionable(unittest.TestCase):
@@ -264,6 +274,178 @@ class TestStateValidation(unittest.TestCase):
         history = {"NVDA": {"price": [100.0, float("nan")], "volume": [], "depth": []}}
         with self.assertRaises(main.StateCorruptionError):
             main.validate_history_state(history)
+
+
+class TestRunIntegration(unittest.TestCase):
+    """M-3: end-to-end tests for run() itself, with fetch_bitget_data
+    and call_llm mocked out. These exercise the orchestration logic
+    that the smaller unit tests above can't reach on their own -
+    especially the hard-rule enforcement, which is the single most
+    security/financially-critical path in the whole system."""
+
+    def setUp(self):
+        import tempfile
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._cwd = os.getcwd()
+        os.chdir(self._tmpdir.name)
+        os.makedirs("data", exist_ok=True)
+
+    def tearDown(self):
+        os.chdir(self._cwd)
+        self._tmpdir.cleanup()
+
+    def _base_positions(self, nvda_status="held"):
+        positions = {"USDT": {"balance_usdt": 100.0}}
+        for stock in main.STOCKS:
+            if stock == "NVDA":
+                if nvda_status == "held":
+                    positions["NVDA"] = {
+                        "status": "held", "entry_price": 200.0, "exit_price": None,
+                        "quantity": 1.5, "cost_basis_usd": 300.0,
+                    }
+                else:
+                    positions["NVDA"] = {
+                        "status": "sold", "entry_price": 200.0, "exit_price": 200.0,
+                        "quantity_sold": 1.5, "proceeds_usd": 300.0,
+                        "realized_pnl_usd": 0.0, "sold_timestamp": "2026-01-01T00:00:00+00:00",
+                    }
+            else:
+                # Other 9 stocks: valid but irrelevant - fetch will
+                # return "error" for them so their score is None and
+                # they're excluded from the held/sold candidate lists.
+                positions[stock] = {
+                    "status": "held", "entry_price": 100.0, "exit_price": None,
+                    "quantity": 3.0, "cost_basis_usd": 300.0,
+                }
+        return positions
+
+    def _mature_history(self, n=main.MIN_HISTORY_POINTS):
+        return {"NVDA": {
+            "volume": [50_000_000.0] * n,
+            "price": [200.0] * n,
+            "depth": [200.0] * n,
+        }}
+
+    def _healthy_nvda_fetch_entry(self):
+        # Tight spread, in-line depth/volume, no abnormal move -
+        # every component scores high, so the composite lands well
+        # above SELL_CEILING (0.5) / at BUYBACK_STRONG territory.
+        return {
+            "underlying": "NVDA", "symbol": "rNVDAUSDT", "status": "ok",
+            "price": 200.0, "bid": 199.9, "ask": 200.1,
+            "bid_size": 100.0, "ask_size": 100.0,
+            "volume_24h": 50_000_000.0, "spread_pct": 0.1,
+        }
+
+    def _write_state(self, history, positions):
+        main.save_json(main.HISTORY_PATH, history)
+        main.save_json(main.POSITIONS_PATH, positions)
+
+    def _last_event(self):
+        events = main.read_jsonl(main.EVENT_LOG_PATH)
+        self.assertTrue(events, "expected at least one event to be logged")
+        return events[-1]
+
+    def test_hard_ceiling_blocks_sell_even_when_llm_says_sell(self):
+        """SELL_CEILING must be enforced regardless of what the LLM
+        says - a healthy score (>= 0.5) must never actually execute
+        a sell, even if the LLM's first line is literally 'SELL'."""
+        self._write_state(self._mature_history(), self._base_positions("held"))
+
+        with unittest.mock.patch("main.fetch_bitget_data",
+                                  return_value=[self._healthy_nvda_fetch_entry()]), \
+             unittest.mock.patch("main.call_llm",
+                                  return_value={"success": True,
+                                                "content": "SELL\nSpread looks a bit wide.",
+                                                "provider_used": "test", "attempts": []}):
+            main.run()
+
+        positions = main.load_json(main.POSITIONS_PATH, None)
+        self.assertEqual(positions["NVDA"]["status"], "held",
+                          "hard SELL_CEILING rule was bypassed - NVDA got sold")
+        event = self._last_event()
+        self.assertIn("blocked by hard rule", event.get("action_taken", ""))
+
+    def test_hard_floor_blocks_buyback_even_when_llm_says_buy_back(self):
+        """BUYBACK_FLOOR must be enforced regardless of what the LLM
+        says - too low a score must never actually execute a
+        buy-back, even if the LLM's first line is literally
+        'BUY_BACK'."""
+        history = self._mature_history()
+        positions = self._base_positions("sold")
+        # The startup reconciliation check requires the ledger to
+        # already show NVDA as sold (one performance_log entry, no
+        # matching buy-back) - otherwise main.py correctly treats
+        # positions.json's "sold" status as an unexplained mismatch
+        # and freezes the stock instead of evaluating it, which would
+        # make this test about reconciliation, not about the hard
+        # floor. Seed a matching ledger entry so NVDA is eligible.
+        main.append_jsonl(main.PERFORMANCE_LOG_PATH, {
+            "event_id": "sell_NVDA_seed", "timestamp": "2026-01-01T00:00:00+00:00",
+            "instrument": "NVDA", "entry_price": 200.0, "exit_price": 200.0,
+            "quantity": 1.5, "realized_pnl_usd": 0.0, "realized_pnl_pct": 0.0,
+            "score_at_decision": 0.3, "decision_zone": "grey_zone",
+        })
+
+        with unittest.mock.patch("main.fetch_bitget_data",
+                                  return_value=[self._healthy_nvda_fetch_entry()]) as fetch_mock:
+            # Force a low score by making the fetch entry look
+            # structurally stressed (very wide spread, thin depth,
+            # low volume) while keeping >=4 components available.
+            fetch_mock.return_value = [{
+                "underlying": "NVDA", "symbol": "rNVDAUSDT", "status": "ok",
+                "price": 200.0, "bid": 198.0, "ask": 202.0,
+                "bid_size": 2.0, "ask_size": 2.0,
+                "volume_24h": 500_000.0, "spread_pct": 2.0,
+            }]
+            self._write_state(history, positions)
+            with unittest.mock.patch("main.call_llm",
+                                      return_value={"success": True,
+                                                    "content": "BUY_BACK\nLooks recovered.",
+                                                    "provider_used": "test", "attempts": []}):
+                main.run()
+
+        result_positions = main.load_json(main.POSITIONS_PATH, None)
+        self.assertEqual(result_positions["NVDA"]["status"], "sold",
+                          "hard BUYBACK_FLOOR rule was bypassed - NVDA got bought back")
+        event = self._last_event()
+        self.assertIn("blocked by hard rule", event.get("action_taken", ""))
+
+    def test_immature_history_skips_llm_even_after_this_runs_own_update(self):
+        """M-1 regression: check_actionable() must use the PRE-update
+        history snapshot. With exactly MIN_HISTORY_POINTS - 1 prior
+        points, the stock must still be 'warming up' THIS cycle -
+        the fresh reading this run just fetched must not count toward
+        its own maturity gate. If the bug regresses, this stock would
+        incorrectly become eligible and call_llm WOULD be invoked."""
+        history = self._mature_history(n=main.MIN_HISTORY_POINTS - 1)
+        self._write_state(history, self._base_positions("held"))
+
+        with unittest.mock.patch("main.fetch_bitget_data",
+                                  return_value=[self._healthy_nvda_fetch_entry()]), \
+             unittest.mock.patch("main.call_llm") as llm_mock:
+            main.run()
+            llm_mock.assert_not_called()
+
+        event = self._last_event()
+        self.assertIn("warming up", event.get("action_taken", ""))
+
+    def test_whitespace_llm_response_does_not_crash_run(self):
+        """H-1 regression at the integration level: a whitespace-only
+        completion from the LLM must not raise inside run() - it
+        should fail closed to HOLD, and state must still be
+        persisted for this cycle."""
+        self._write_state(self._mature_history(), self._base_positions("held"))
+
+        with unittest.mock.patch("main.fetch_bitget_data",
+                                  return_value=[self._healthy_nvda_fetch_entry()]), \
+             unittest.mock.patch("main.call_llm",
+                                  return_value={"success": True, "content": "   \n  ",
+                                                "provider_used": "test", "attempts": []}):
+            main.run()  # must not raise
+
+        positions = main.load_json(main.POSITIONS_PATH, None)
+        self.assertEqual(positions["NVDA"]["status"], "held")
 
 
 if __name__ == "__main__":
