@@ -349,6 +349,10 @@
 </div>
 
 <script>
+  // Fix L3/M5: every value interpolated into HTML is escaped, JSONL
+  // parsing skips corrupt lines instead of killing the whole
+  // dashboard, and each dashboard section fails independently so one
+  // broken fetch can't blank sections that loaded fine.
   const STATUS_COLOR = {
     healthy: 'var(--healthy)',
     watch: 'var(--watch)',
@@ -362,6 +366,10 @@
     unknown: 'no data',
   };
 
+  // A run is scheduled every 4 hours; flag the dashboard as stale if
+  // the last snapshot is significantly older than that.
+  const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
+
   async function fetchJSON(path) {
     const res = await fetch(path, { cache: 'no-store' });
     if (!res.ok) throw new Error(path + ' not found');
@@ -372,7 +380,11 @@
     const res = await fetch(path, { cache: 'no-store' });
     if (!res.ok) return [];
     const text = await res.text();
-    const lines = text.trim().split('\n').filter(Boolean).map(l => JSON.parse(l));
+    // M5 fix: skip individual corrupt lines - one bad row must not
+    // take down the entire dashboard.
+    const lines = text.trim().split('\n').filter(Boolean).flatMap(l => {
+      try { return [JSON.parse(l)]; } catch (e) { return []; }
+    });
     lines.reverse();
     return limit ? lines.slice(0, limit) : lines;
   }
@@ -389,7 +401,7 @@
 
   function escapeHtml(str) {
     const div = document.createElement('div');
-    div.textContent = str;
+    div.textContent = String(str);
     return div.innerHTML;
   }
 
@@ -403,13 +415,13 @@
       const statusText = pos.status === 'held' ? 'held' : 'sold · cash';
       return `
         <div class="row">
-          <div class="row-ticker">${ticker}</div>
+          <div class="row-ticker">${escapeHtml(ticker)}</div>
           <div class="row-meter">
             <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}"></div></div>
           </div>
           <div class="row-score mono">${s.score !== null ? s.score.toFixed(2) : '—'}</div>
           <div class="row-label" style="color:${color}">${STATUS_LABEL[s.label] || 'no data'}</div>
-          <div class="row-status mono">${statusText}</div>
+          <div class="row-status mono">${escapeHtml(statusText)}</div>
         </div>`;
     }).join('');
   }
@@ -426,7 +438,7 @@
       const reasoning = escapeHtml((e.llm_reasoning || '').replace(/\n+/g, ' ').trim());
       return `
         <div class="log-entry">
-          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${escapeHtml(e.instrument)}</span> · <span style="color:${color}">${decision}</span></div>
+          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${escapeHtml(e.instrument)}</span> · <span style="color:${color}">${escapeHtml(decision)}</span></div>
           <p class="log-reasoning">${reasoning}</p>
         </div>`;
     }).join('');
@@ -445,32 +457,65 @@
     let html = '<div class="stat-row">' + rows.map(([label, val]) =>
       `<div class="stat"><div class="stat-label">${label}</div><div class="stat-num mono">${val}</div></div>`
     ).join('') + '</div>';
-    if (perf.note) html += `<p class="note">${perf.note}</p>`;
+    if (perf.note) html += `<p class="note">${escapeHtml(perf.note)}</p>`;
     return html;
   }
 
-  async function init() {
-    try {
-      const latest = await fetchJSON('data/latest.json');
-      const events = await fetchJSONL('data/event_log.jsonl', 20);
-      const perf = latest.performance_summary;
-      const ps = latest.portfolio_summary;
+  function showEmptyState() {
+    document.getElementById('app').innerHTML = `
+      <div class="empty-state">
+        <div class="brand"><span class="pulse"></span><h1>Custos</h1></div>
+        <p>Monitoring hasn't started yet. This dashboard populates once the first automated run completes — check back in a few hours, or trigger the workflow manually from the Actions tab.</p>
+      </div>`;
+  }
 
-      document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
-      document.getElementById('stale-note').style.display = ps.valuation_status === 'stale' ? 'block' : 'none';
-      document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
-      document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
-      document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions);
-      document.getElementById('log').innerHTML = renderLog(events);
-      document.getElementById('perf').innerHTML = renderPerformance(perf);
-      document.getElementById('updated').textContent = fmtTime(latest.timestamp);
+  // M5 fix: each section renders independently - a failure in one
+  // section leaves the other sections intact instead of falling into
+  // the global "hasn't started" state.
+  async function renderStats(latest) {
+    const ps = latest.portfolio_summary;
+    document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
+    const stale = ps.valuation_status === 'stale' ||
+      (Date.now() - new Date(latest.timestamp).getTime()) > STALE_AFTER_MS;
+    document.getElementById('stale-note').style.display = stale ? 'block' : 'none';
+    document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
+    document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
+  }
+
+  async function renderHoldingsSection(latest) {
+    document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions);
+  }
+
+  async function renderLogSection() {
+    const events = await fetchJSONL('data/event_log.jsonl', 20);
+    document.getElementById('log').innerHTML = renderLog(events);
+  }
+
+  async function renderPerfSection(latest) {
+    document.getElementById('perf').innerHTML = renderPerformance(latest.performance_summary);
+  }
+
+  async function init() {
+    let latest;
+    try {
+      latest = await fetchJSON('data/latest.json');
     } catch (err) {
-      document.getElementById('app').innerHTML = `
-        <div class="empty-state">
-          <div class="brand"><span class="pulse"></span><h1>Custos</h1></div>
-          <p>Monitoring hasn't started yet. This dashboard populates once the first automated run completes — check back in a few hours, or trigger the workflow manually from the Actions tab.</p>
-        </div>`;
+      showEmptyState();
+      return;
     }
+
+    const sections = [
+      () => renderStats(latest),
+      () => renderHoldingsSection(latest),
+      renderLogSection,
+      () => renderPerfSection(latest),
+    ];
+    const results = await Promise.allSettled(sections.map(render => render()));
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error('Section ' + i + ' failed to render:', r.reason);
+    });
+
+    document.getElementById('updated').textContent = fmtTime(latest.timestamp);
   }
 
   init();
