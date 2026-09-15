@@ -37,6 +37,7 @@ State files (all under data/):
 """
 
 import json
+import math
 import os
 from datetime import datetime, timezone
 from statistics import mean, stdev
@@ -54,6 +55,7 @@ TRANSACTION_LOG_PATH = f"{DATA_DIR}/transaction_log.jsonl"
 PERFORMANCE_LOG_PATH = f"{DATA_DIR}/performance_log.jsonl"
 PERFORMANCE_SUMMARY_PATH = f"{DATA_DIR}/performance_summary.json"
 LATEST_PATH = f"{DATA_DIR}/latest.json"
+RECENT_EVENTS_PATH = os.path.join(DATA_DIR, "recent_events.json")
 
 STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "SPY", "QQQ", "KO", "MCD", "PYPL"]
 
@@ -80,17 +82,23 @@ ALL_COMPONENTS = {"spread", "depth", "volume_trend", "abnormal_movement", "weeke
 
 # ── Small I/O helpers ──────────────────────────────────────────
 
-def load_json(path: str, default):
-    """Load JSON with a soft failure: return default on missing file
-    or unparseable content so a single corrupt state file cannot
-    take the whole agent down."""
+class StateCorruptionError(RuntimeError):
+    """Raised when an existing state file cannot be trusted."""
+
+
+def load_json(path: str, default, *, required: bool = False):
+    """Load JSON safely. Missing files may use a default; existing corrupt
+    state files must fail closed instead of silently resetting portfolio state."""
     if not os.path.exists(path):
         return default
     try:
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError) as e:
-        print(f"[warn] failed to load {path}: {e} - using default")
+        message = f"failed to load existing state file {path}: {e}"
+        if required:
+            raise StateCorruptionError(message) from e
+        print(f"[warn] {message} - using default")
         return default
 
 
@@ -185,6 +193,44 @@ def check_actionable(stock: str, score_result: dict, history: dict) -> tuple[boo
 
 
 # ── State bootstrapping ────────────────────────────────────────
+
+def validate_history_state(history: dict) -> None:
+    """Fail closed if history.json is syntactically valid but structurally unusable."""
+    if not isinstance(history, dict):
+        raise StateCorruptionError("history.json has invalid top-level schema")
+    for stock, series in history.items():
+        if stock not in STOCKS:
+            continue
+        if not isinstance(series, dict):
+            raise StateCorruptionError(f"history.json has invalid series for {stock}")
+        for key in ("volume", "price", "depth"):
+            values = series.get(key, [])
+            if not isinstance(values, list):
+                raise StateCorruptionError(f"history.json {stock}.{key} must be a list")
+            for value in values:
+                if not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value < 0:
+                    raise StateCorruptionError(f"history.json {stock}.{key} contains invalid numeric data")
+
+
+def validate_positions_state(positions: dict) -> None:
+    """Fail closed if an existing portfolio state has the wrong shape."""
+    if not isinstance(positions, dict) or not isinstance(positions.get("USDT"), dict):
+        raise StateCorruptionError("positions.json has invalid top-level schema")
+    balance = positions["USDT"].get("balance_usdt")
+    if not isinstance(balance, (int, float)) or not math.isfinite(float(balance)) or balance < 0:
+        raise StateCorruptionError("positions.json has invalid USDT balance")
+    for stock in STOCKS:
+        p = positions.get(stock)
+        if not isinstance(p, dict) or p.get("status") not in {"held", "sold"}:
+            raise StateCorruptionError(f"positions.json has invalid state for {stock}")
+        if p.get("status") == "held":
+            qty = p.get("quantity")
+            cost = p.get("cost_basis_usd")
+            if qty is None or not isinstance(qty, (int, float)) or not math.isfinite(float(qty)) or qty <= 0:
+                raise StateCorruptionError(f"positions.json has invalid held quantity for {stock}")
+            if cost is None or not isinstance(cost, (int, float)) or not math.isfinite(float(cost)) or cost <= 0:
+                raise StateCorruptionError(f"positions.json has invalid cost basis for {stock}")
+
 
 def init_positions(by_stock: dict) -> dict:
     """
@@ -463,16 +509,19 @@ def compute_performance_metrics() -> dict:
 def run():
     now = datetime.now(timezone.utc)
 
-    history = load_json(HISTORY_PATH, {})
+    history = load_json(HISTORY_PATH, {}, required=True)
+    validate_history_state(history)
 
     raw_entries = fetch_bitget_data()
     by_stock = {e["underlying"]: e for e in raw_entries}
 
-    positions = load_json(POSITIONS_PATH, None)
+    positions = load_json(POSITIONS_PATH, None, required=True)
     if positions is None:
         positions = init_positions(by_stock)
-        # H1 fix: bootstrap state must be durable before anything else
+        # Bootstrap is allowed only when the file truly does not exist.
         save_json(POSITIONS_PATH, positions)
+    else:
+        validate_positions_state(positions)
 
     # H1 safety net: if a previous run died between writing ledger
     # entries and saving state, the ledgers and positions.json will
@@ -682,6 +731,10 @@ def run():
         "performance_summary": performance_summary,
         "events_this_run": events_this_run,
     })
+    # Small dashboard feed so the frontend never needs to download the
+    # entire append-only event log just to show the latest activity.
+    recent_events = read_jsonl(EVENT_LOG_PATH)[-20:]
+    save_json(RECENT_EVENTS_PATH, list(reversed(recent_events)))
 
     print(f"[{now.isoformat()}] Run complete. {len(events_this_run)} LLM evaluation(s).")
     for event in events_this_run:
