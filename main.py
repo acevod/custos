@@ -36,6 +36,7 @@ State files (all under data/):
                              dashboard to read
 """
 
+import copy
 import json
 import math
 import os
@@ -337,7 +338,11 @@ def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     for anything that isn't an exact match - the caller treats None
     the same as "no action", the safer failure mode.
     """
-    if not llm_text:
+    # H-1 fix: guard on the STRIPPED text, not the raw text. A
+    # whitespace-only response (e.g. "   " or "\n\n") is truthy and
+    # would previously slip past `if not llm_text`, then crash with
+    # IndexError on splitlines()[0] once it's stripped to "".
+    if not llm_text or not llm_text.strip():
         return None
     first_line = llm_text.strip().splitlines()[0]
     cleaned = first_line.strip().strip("*_`\"'.:—- ").upper()
@@ -553,6 +558,15 @@ def run():
         heartbeat_scores[stock] = result["score"]
         heartbeat_labels[stock] = result["label"]
 
+    # M-1 fix: snapshot history BEFORE folding in this run's values,
+    # and use this snapshot for check_actionable()'s maturity gate
+    # below. Without this, check_actionable would count this run's
+    # own just-appended reading as one of its MIN_HISTORY_POINTS,
+    # opening the action gate one cycle earlier than the H2 fix
+    # intended (mirrors the same "don't let a component see its own
+    # current reading" principle score_stock already follows).
+    history_before_update = copy.deepcopy(history)
+
     # Only now fold this run's values into history, so the NEXT run's
     # baseline includes them - never this run's own scoring.
     history = update_history(history, by_stock)
@@ -591,7 +605,7 @@ def run():
     if held:
         worst_stock = min(held, key=lambda s: scores[s]["score"])
         score_result = scores[worst_stock]
-        eligible, reason = check_actionable(worst_stock, score_result, history)
+        eligible, reason = check_actionable(worst_stock, score_result, history_before_update)
 
         if not eligible:
             # Not enough signal/maturity yet - skip the LLM call
@@ -642,10 +656,18 @@ def run():
                         score_result, llm_result.get("content"), llm_result, now)
                     emit(event, ledger)
             else:
+                # M-2 fix: distinguish a genuine LLM HOLD from a SELL
+                # that the LLM recommended but the hard rule blocked -
+                # these previously looked identical in the log
+                # ("HOLD"), hiding a meaningful disagreement between
+                # the model's judgment and the code-enforced ceiling.
                 if not llm_result.get("success"):
                     action = "HOLD (LLM unavailable - fail-safe default, not an evaluated decision)"
                 elif decision is None:
                     action = "HOLD (response unparseable - fail-safe default, not a confirmed decision)"
+                elif decision == "SELL":
+                    action = (f"HOLD (LLM recommended SELL, blocked by hard rule - "
+                              f"score {score_result['score']} >= SELL_CEILING {SELL_CEILING})")
                 else:
                     action = "HOLD"
                 event, ledger = build_eval_event(worst_stock, "sell_hold_evaluation", action,
@@ -661,7 +683,7 @@ def run():
     if sold:
         best_stock = max(sold, key=lambda s: scores[s]["score"])
         score_result = scores[best_stock]
-        eligible, reason = check_actionable(best_stock, score_result, history)
+        eligible, reason = check_actionable(best_stock, score_result, history_before_update)
 
         if not eligible:
             event, ledger = build_eval_event(
@@ -702,10 +724,16 @@ def run():
                         score_result, llm_result.get("content"), llm_result, now)
                     emit(event, ledger)
             else:
+                # M-2 fix: same distinction as the sell/hold branch -
+                # a BUY_BACK recommendation blocked by the hard floor
+                # is not the same signal as a genuine WAIT.
                 if not llm_result.get("success"):
                     action = "WAIT (LLM unavailable - fail-safe default, not an evaluated decision)"
                 elif decision is None:
                     action = "WAIT (response unparseable - fail-safe default, not a confirmed decision)"
+                elif decision == "BUY_BACK":
+                    action = (f"WAIT (LLM recommended BUY_BACK, blocked by hard rule - "
+                              f"score {score_result['score']} < BUYBACK_FLOOR {BUYBACK_FLOOR})")
                 else:
                     action = "WAIT"
                 event, ledger = build_eval_event(best_stock, "buyback_wait_evaluation", action,
