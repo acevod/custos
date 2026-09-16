@@ -343,6 +343,13 @@
     <div id="perf"></div>
   </section>
 
+  <section>
+    <h2>Run records</h2>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Every executed trade — timestamp, instrument, direction, price, quantity, and the resulting change to the USDT balance. Paper trading, no real funds involved.</p>
+    <div id="runrecords"></div>
+    <p class="note"><a href="https://github.com/acevod/custos/blob/main/data/transaction_log.jsonl" class="raw-link" target="_blank" rel="noopener noreferrer">View full transaction history on GitHub →</a></p>
+  </section>
+
   <footer>
     <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price, only by wrapper health: spread, order-book depth, volume, and movement abnormal for that token's own history.</p>
   </footer>
@@ -357,12 +364,14 @@
     healthy: 'var(--healthy)',
     watch: 'var(--watch)',
     red_flag: 'var(--redflag)',
+    warming_up: 'var(--text-dim)',
     unknown: 'var(--text-dim)',
   };
   const STATUS_LABEL = {
     healthy: 'healthy',
     watch: 'watch',
     red_flag: 'red flag',
+    warming_up: 'warming up',
     unknown: 'no data',
   };
 
@@ -377,10 +386,13 @@
   }
 
   async function fetchJSONL(path, limit) {
-    // event_log.jsonl is append-only and can grow indefinitely.
-    // main.py maintains a bounded JSON feed for the dashboard.
+    // event_log.jsonl and transaction_log.jsonl are both append-only
+    // and can grow indefinitely. main.py maintains a bounded JSON
+    // feed for the dashboard for each.
     const dashboardPath = path.endsWith('event_log.jsonl')
       ? 'data/recent_events.json'
+      : path.endsWith('transaction_log.jsonl')
+      ? 'data/recent_transactions.json'
       : path;
     const res = await fetch(dashboardPath, { cache: 'no-store' });
     if (!res.ok) return [];
@@ -472,6 +484,24 @@
     return html;
   }
 
+  function renderRunRecords(records) {
+    if (!records.length) {
+      return '<p class="empty">No trades executed yet — nothing has crossed the hard SELL/BUY_BACK thresholds so far. This section fills in as soon as the first trade happens.</p>';
+    }
+    return records.map(t => {
+      const directionColor = t.direction === 'SELL' ? 'var(--redflag)' : 'var(--healthy)';
+      const price = typeof t.price === 'number' ? t.price.toFixed(2) : '—';
+      const qty = typeof t.quantity === 'number' ? t.quantity.toFixed(4) : '—';
+      const change = typeof t.balance_change === 'number'
+        ? (t.balance_change >= 0 ? '+' : '') + fmtUsd(t.balance_change)
+        : '—';
+      return `
+        <div class="log-entry">
+          <div class="log-meta mono">${fmtTime(t.timestamp)} · <span class="log-ticker">${escapeHtml(t.instrument)}</span> · <span style="color:${directionColor}">${escapeHtml(t.direction || '—')}</span> · price ${price} · qty ${qty} · balance ${change}</div>
+        </div>`;
+    }).join('');
+  }
+
   function showEmptyState() {
     document.getElementById('app').innerHTML = `
       <div class="empty-state">
@@ -506,6 +536,11 @@
     document.getElementById('perf').innerHTML = renderPerformance(latest.performance_summary);
   }
 
+  async function renderRunRecordsSection() {
+    const records = await fetchJSONL('data/transaction_log.jsonl', 20);
+    document.getElementById('runrecords').innerHTML = renderRunRecords(records);
+  }
+
   async function init() {
     let latest;
     try {
@@ -520,6 +555,7 @@
       () => renderHoldingsSection(latest),
       renderLogSection,
       () => renderPerfSection(latest),
+      renderRunRecordsSection,
     ];
     const results = await Promise.allSettled(sections.map(render => render()));
     results.forEach((r, i) => {
