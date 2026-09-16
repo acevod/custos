@@ -57,6 +57,7 @@ PERFORMANCE_LOG_PATH = f"{DATA_DIR}/performance_log.jsonl"
 PERFORMANCE_SUMMARY_PATH = f"{DATA_DIR}/performance_summary.json"
 LATEST_PATH = f"{DATA_DIR}/latest.json"
 RECENT_EVENTS_PATH = os.path.join(DATA_DIR, "recent_events.json")
+RECENT_TRANSACTIONS_PATH = os.path.join(DATA_DIR, "recent_transactions.json")
 
 STOCKS = ["NVDA", "TSLA", "AAPL", "AMZN", "GOOGL", "SPY", "QQQ", "KO", "MCD", "PYPL"]
 
@@ -139,20 +140,39 @@ def read_jsonl(path: str) -> list[dict]:
 
 # ── Startup reconciliation (H1 safety net) ─────────────────────
 
-def count_ledger_entries(performance_path: str = PERFORMANCE_LOG_PATH,
-                          event_path: str = EVENT_LOG_PATH) -> tuple[dict, dict]:
-    """Counts sells per stock (performance log) and buy-backs per stock
-    (event log). Pure read - separated from find_ledger_mismatches so
-    both are unit-testable."""
+def count_ledger_entries(transaction_path: str = TRANSACTION_LOG_PATH) -> tuple[dict, dict]:
+    """Counts sells and buy-backs per stock from transaction_log.jsonl,
+    the one ledger that records both directions with a consistent,
+    purpose-built shape (direction: SELL/BUY). Pure read - separated
+    from find_ledger_mismatches so both are unit-testable.
+
+    M-3 fix: this used to count sells from performance_log.jsonl and
+    buys from event_log.jsonl - two different files with independent
+    corruption tolerance (read_jsonl silently skips bad lines in
+    each) and no shared identity between them, so one corrupt or
+    duplicated line in either file could desync the counts without
+    the other file reflecting it, producing a false permanent freeze.
+    transaction_log.jsonl already existed with exactly the fields
+    needed for this and a dedicated "direction" field, but nothing
+    read it until now. Entries are deduplicated by event_id, since a
+    manual workflow re-run can reproduce the same event_id (event_id
+    only has second-resolution - see the L-1 note on build_sell_event/
+    build_buyback_event) and would otherwise be double-counted.
+    """
     sells, buys = {}, {}
-    for t in read_jsonl(performance_path):
+    seen_ids = set()
+    for t in read_jsonl(transaction_path):
+        event_id = t.get("event_id")
+        if event_id is not None:
+            if event_id in seen_ids:
+                continue
+            seen_ids.add(event_id)
         inst = t.get("instrument")
-        if inst:
-            sells[inst] = sells.get(inst, 0) + 1
-    for e in read_jsonl(event_path):
-        if e.get("type") == "buy_back" and e.get("instrument"):
-            inst = e["instrument"]
-            buys[inst] = buys.get(inst, 0) + 1
+        direction = t.get("direction")
+        if not inst or direction not in ("SELL", "BUY"):
+            continue
+        target = sells if direction == "SELL" else buys
+        target[inst] = target.get(inst, 0) + 1
     return sells, buys
 
 
@@ -233,12 +253,35 @@ def validate_positions_state(positions: dict) -> None:
                 raise StateCorruptionError(f"positions.json has invalid cost basis for {stock}")
 
 
+def bootstrap_is_complete(by_stock: dict) -> list[str]:
+    """H-1 fix: returns the list of stocks that don't yet have a
+    usable price (no 'ok' fetch, or no ask/price on the entry).
+    Bootstrapping with any of these missing would write positions.json
+    with quantity: None for a "held" stock - a shape that passes
+    init_positions() silently but then fails validate_positions_state()
+    on every subsequent run, since nothing ever revisits or repairs a
+    "held" position after bootstrap. That's a permanent, unrecoverable
+    crash loop from a single bad first run, not a one-cycle hiccup -
+    so bootstrap must not proceed until this list is empty.
+    """
+    missing = []
+    for stock in STOCKS:
+        entry = by_stock.get(stock, {})
+        if entry.get("status") != "ok" or not (entry.get("ask") or entry.get("price")):
+            missing.append(stock)
+    return missing
+
+
 def init_positions(by_stock: dict) -> dict:
     """
     First-run bootstrap. USDT starts as its own explicit position at
     $0. Each stock enters HELD using the ASK price (the executable
     buy-side price, not lastPrice) minus the trading fee. Falls back
     to lastPrice if ask is unavailable, rather than failing the entry.
+
+    Callers MUST check bootstrap_is_complete(by_stock) == [] first -
+    this function assumes every stock already has a usable price and
+    no longer tolerates a partial fetch (see H-1).
     """
     positions = {"USDT": {"balance_usdt": 0.0}}
     for stock in STOCKS:
@@ -329,14 +372,28 @@ def build_buyback_wait_prompt(stock: str, score_result: dict) -> str:
 
 def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     """
-    Strictly parses the LLM's decision from the first line of its
-    reply. Requires an EXACT match (after stripping whitespace and
-    common markdown/punctuation wrapping) against one of valid_words.
-    Deliberately NOT a substring search: a naive `"SELL" in first_line`
-    check would incorrectly match "HOLD - SELL is not justified",
-    silently turning a HOLD into a SELL. Returns None (unparseable)
-    for anything that isn't an exact match - the caller treats None
-    the same as "no action", the safer failure mode.
+    Parses the LLM's decision from the FIRST TOKEN of the first line
+    of its reply (after stripping whitespace and common markdown/
+    punctuation wrapping), requiring an EXACT match against one of
+    valid_words. Deliberately NOT a substring search over the whole
+    line: a naive `"SELL" in first_line` check would incorrectly
+    match "HOLD - SELL is not justified", silently turning a HOLD
+    into a SELL. Returns None (unparseable) for anything that isn't
+    an exact match on that first token - the caller treats None the
+    same as "no action", the safer failure mode.
+
+    M-1 fix: matching used to require the ENTIRE first line to equal
+    a valid word exactly, which silently rejected the LLM's own
+    natural style of combining the decision and its reasoning on one
+    line ("SELL - spread widened", "SELL: liquidity thinned",
+    "SELL (spread widening)") - every one of those returned None and
+    fell back to HOLD/WAIT, quietly disabling the whole grey-zone
+    decision feature for any model that writes this way. Matching
+    only the first whitespace-delimited token fixes this while
+    keeping the exact-match discipline (and the substring-attack
+    protection above) intact: "HOLD - SELL is not justified" still
+    parses to HOLD, because "HOLD" is what's actually in that
+    position, not "SELL".
     """
     # H-1 fix: guard on the STRIPPED text, not the raw text. A
     # whitespace-only response (e.g. "   " or "\n\n") is truthy and
@@ -344,8 +401,11 @@ def parse_decision(llm_text: str | None, valid_words: set[str]) -> str | None:
     # IndexError on splitlines()[0] once it's stripped to "".
     if not llm_text or not llm_text.strip():
         return None
-    first_line = llm_text.strip().splitlines()[0]
-    cleaned = first_line.strip().strip("*_`\"'.:—- ").upper()
+    first_line = llm_text.strip().splitlines()[0].strip()
+    tokens = first_line.split()
+    if not tokens:
+        return None
+    cleaned = tokens[0].strip("*_`\"'.:—- ").upper()
     return cleaned if cleaned in valid_words else None
 
 
@@ -522,8 +582,26 @@ def run():
 
     positions = load_json(POSITIONS_PATH, None, required=True)
     if positions is None:
+        # H-1 fix: never bootstrap on a partial fetch. Writing
+        # quantity: None for a "held" stock used to pass silently
+        # here and then permanently fail validate_positions_state()
+        # on every run from then on - a crash loop with no recovery
+        # path. Instead, wait for a cycle where every stock has a
+        # usable price before committing to a first state at all.
+        missing = bootstrap_is_complete(by_stock)
+        if missing:
+            append_jsonl(HEARTBEAT_LOG_PATH, {
+                "timestamp": now.isoformat(),
+                "status": "bootstrap_incomplete",
+                "reason": f"waiting for a full fetch before first-run bootstrap - "
+                          f"missing usable price for: {', '.join(missing)}",
+            })
+            print(f"[{now.isoformat()}] Bootstrap deferred - missing price for: "
+                  f"{', '.join(missing)}. No state written; will retry next cycle.")
+            return
         positions = init_positions(by_stock)
-        # Bootstrap is allowed only when the file truly does not exist.
+        # Bootstrap is allowed only when the file truly does not exist,
+        # and now only once we know every stock has a usable price.
         save_json(POSITIONS_PATH, positions)
     else:
         validate_positions_state(positions)
@@ -763,6 +841,13 @@ def run():
     # entire append-only event log just to show the latest activity.
     recent_events = read_jsonl(EVENT_LOG_PATH)[-20:]
     save_json(RECENT_EVENTS_PATH, list(reversed(recent_events)))
+    # Same bounded-feed treatment for the Run Records section - the
+    # submission form's required run-record fields (timestamp,
+    # instrument, direction, price, quantity, balance change) already
+    # match transaction_log.jsonl exactly; this just makes them
+    # visible without asking a reviewer to open a raw growing file.
+    recent_transactions = read_jsonl(TRANSACTION_LOG_PATH)[-20:]
+    save_json(RECENT_TRANSACTIONS_PATH, list(reversed(recent_transactions)))
 
     print(f"[{now.isoformat()}] Run complete. {len(events_this_run)} LLM evaluation(s).")
     for event in events_this_run:
