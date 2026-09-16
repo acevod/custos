@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20260916T191924",
+    "timestamp": "2026-09-16T19:19:24.298267+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (warming up - only 2/5 components available, need 4)",
+    "score": 0.9762,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_KO_20260916T130138",
     "timestamp": "2026-09-16T13:01:38.978848+00:00",
     "type": "sell_hold_evaluation",
