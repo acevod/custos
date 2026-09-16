@@ -37,8 +37,16 @@ class TestParseDecision(unittest.TestCase):
         self.assertEqual(main.parse_decision("BUY_BACK.", {"BUY_BACK", "WAIT"}), "BUY_BACK")
 
     def test_substring_attack_rejected(self):
-        # "HOLD - SELL is not justified" must NOT parse as SELL.
-        self.assertIsNone(main.parse_decision("HOLD - SELL is not justified", {"SELL", "HOLD"}))
+        # "HOLD - SELL is not justified" must NOT parse as SELL. Before
+        # the M-1 fix (whole-line exact match), this returned None
+        # (unparseable) - overly strict, but still safe. After the
+        # fix (first-token match), it correctly resolves to the
+        # actual decision, HOLD, which is more useful and equally
+        # safe: the only invariant that actually matters is that it
+        # never becomes SELL.
+        result = main.parse_decision("HOLD - SELL is not justified", {"SELL", "HOLD"})
+        self.assertNotEqual(result, "SELL")
+        self.assertEqual(result, "HOLD")
 
     def test_none_and_empty(self):
         self.assertIsNone(main.parse_decision(None, {"SELL", "HOLD"}))
@@ -48,13 +56,41 @@ class TestParseDecision(unittest.TestCase):
         self.assertIsNone(main.parse_decision("UNCLEAR", {"SELL", "HOLD"}))
 
     def test_whitespace_only_does_not_crash(self):
-        # H-1 regression: a truthy-but-blank LLM response ("   ",
-        # "\n\n") used to slip past `if not llm_text` and then crash
-        # with IndexError on splitlines()[0]. Must return None
+        # H-1 (round 1) regression: a truthy-but-blank LLM response
+        # ("   ", "\n\n") used to slip past `if not llm_text` and then
+        # crash with IndexError on splitlines()[0]. Must return None
         # (treated as "unparseable", the safe fail-closed outcome),
         # never raise.
         self.assertIsNone(main.parse_decision("   ", {"SELL", "HOLD"}))
         self.assertIsNone(main.parse_decision("\n\n\t", {"SELL", "HOLD"}))
+
+    def test_decision_with_inline_reasoning_on_same_line(self):
+        # M-1 (round 2) regression: matching used to require the
+        # WHOLE first line to equal a valid word exactly, which
+        # silently rejected the LLM's own natural style of combining
+        # the decision and its reasoning on one line - every one of
+        # these used to return None and quietly fall back to
+        # HOLD/WAIT, disabling the grey-zone decision feature for any
+        # model that writes this way.
+        self.assertEqual(main.parse_decision("SELL - spread widened significantly",
+                                              {"SELL", "HOLD"}), "SELL")
+        self.assertEqual(main.parse_decision("SELL: spread widened",
+                                              {"SELL", "HOLD"}), "SELL")
+        self.assertEqual(main.parse_decision("SELL — because liquidity thinned",
+                                              {"SELL", "HOLD"}), "SELL")
+        self.assertEqual(main.parse_decision("SELL (spread widening)",
+                                              {"SELL", "HOLD"}), "SELL")
+        self.assertEqual(main.parse_decision("BUY_BACK - looks recovered",
+                                              {"BUY_BACK", "WAIT"}), "BUY_BACK")
+
+    def test_substring_attack_still_rejected_with_first_token_matching(self):
+        # The M-1 fix (matching only the first token) must not
+        # reopen the substring-attack hole the strict whole-line
+        # match was originally protecting against.
+        self.assertEqual(main.parse_decision("HOLD - SELL is not justified",
+                                              {"SELL", "HOLD"}), "HOLD")
+        self.assertIsNone(main.parse_decision("the SELL pressure looks high",
+                                              {"SELL", "HOLD"}))
 
 
 class TestCheckActionable(unittest.TestCase):
@@ -127,6 +163,52 @@ class TestLedgerReconciliation(unittest.TestCase):
         self.assertIn("NVDA", problems)
 
 
+class TestCountLedgerEntries(unittest.TestCase):
+    """M-3 (round 2) regression: sells and buy-backs must both be
+    counted from transaction_log.jsonl (the one ledger with a
+    consistent, symmetric direction field), not from two different
+    files with independent corruption/duplication characteristics."""
+
+    def setUp(self):
+        import tempfile
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.path = os.path.join(self._tmpdir.name, "transaction_log.jsonl")
+
+    def tearDown(self):
+        self._tmpdir.cleanup()
+
+    def _write(self, entries):
+        with open(self.path, "w") as f:
+            for e in entries:
+                f.write(main.json.dumps(e) + "\n")
+
+    def test_counts_sells_and_buys_from_same_file(self):
+        self._write([
+            {"event_id": "sell_NVDA_1", "instrument": "NVDA", "direction": "SELL"},
+            {"event_id": "buy_NVDA_1", "instrument": "NVDA", "direction": "BUY"},
+            {"event_id": "sell_TSLA_1", "instrument": "TSLA", "direction": "SELL"},
+        ])
+        sells, buys = main.count_ledger_entries(self.path)
+        self.assertEqual(sells, {"NVDA": 1, "TSLA": 1})
+        self.assertEqual(buys, {"NVDA": 1})
+
+    def test_duplicate_event_id_is_not_double_counted(self):
+        # L-1: event_id only has second-resolution, so a manual
+        # workflow re-run within the same second can reproduce an
+        # identical event_id. Reconciliation must not double-count it.
+        self._write([
+            {"event_id": "sell_NVDA_1", "instrument": "NVDA", "direction": "SELL"},
+            {"event_id": "sell_NVDA_1", "instrument": "NVDA", "direction": "SELL"},
+        ])
+        sells, buys = main.count_ledger_entries(self.path)
+        self.assertEqual(sells, {"NVDA": 1})
+
+    def test_empty_file_returns_empty_counts(self):
+        self._write([])
+        sells, buys = main.count_ledger_entries(self.path)
+        self.assertEqual((sells, buys), ({}, {}))
+
+
 class TestInitPositions(unittest.TestCase):
     def test_ask_preferred(self):
         by_stock = {"NVDA": {"status": "ok", "ask": 210.0, "price": 209.5, "bid": 209.0}}
@@ -140,10 +222,47 @@ class TestInitPositions(unittest.TestCase):
         self.assertEqual(positions["NVDA"]["entry_price"], 209.5)
 
     def test_missing_price_leaves_none(self):
+        # This documents init_positions()'s own low-level behavior in
+        # isolation only. H-1 (round 2): callers must never call
+        # init_positions() directly without first checking
+        # bootstrap_is_complete(by_stock) == [] - see
+        # TestBootstrapCompleteness and
+        # TestRunIntegration.test_bootstrap_deferred_on_partial_fetch
+        # below for the actual safety net run() now applies.
         by_stock = {"NVDA": {"status": "error"}}
         positions = main.init_positions(by_stock)
         self.assertIsNone(positions["NVDA"]["entry_price"])
         self.assertIsNone(positions["NVDA"]["quantity"])
+
+
+class TestBootstrapCompleteness(unittest.TestCase):
+    """H-1 (round 2) regression: run() must never bootstrap
+    positions.json from a partial fetch. A "held" stock with
+    quantity: None passes init_positions() silently but then fails
+    validate_positions_state() on every subsequent run forever, since
+    nothing ever revisits a "held" position after bootstrap - a
+    permanent crash loop from a single bad first run."""
+
+    def _complete_by_stock(self):
+        return {s: {"status": "ok", "ask": 100.0, "price": 100.0} for s in main.STOCKS}
+
+    def test_complete_fetch_reports_nothing_missing(self):
+        self.assertEqual(main.bootstrap_is_complete(self._complete_by_stock()), [])
+
+    def test_missing_ticker_entirely_is_reported(self):
+        by_stock = self._complete_by_stock()
+        del by_stock["TSLA"]
+        self.assertEqual(main.bootstrap_is_complete(by_stock), ["TSLA"])
+
+    def test_error_status_is_reported_even_with_a_stale_price_present(self):
+        by_stock = self._complete_by_stock()
+        by_stock["TSLA"] = {"status": "error", "ask": 100.0}
+        self.assertEqual(main.bootstrap_is_complete(by_stock), ["TSLA"])
+
+    def test_ok_status_without_usable_price_is_reported(self):
+        by_stock = self._complete_by_stock()
+        by_stock["TSLA"] = {"status": "ok", "ask": None, "price": None}
+        self.assertEqual(main.bootstrap_is_complete(by_stock), ["TSLA"])
 
 
 class TestScoringHelpers(unittest.TestCase):
@@ -374,17 +493,19 @@ class TestRunIntegration(unittest.TestCase):
         history = self._mature_history()
         positions = self._base_positions("sold")
         # The startup reconciliation check requires the ledger to
-        # already show NVDA as sold (one performance_log entry, no
-        # matching buy-back) - otherwise main.py correctly treats
-        # positions.json's "sold" status as an unexplained mismatch
-        # and freezes the stock instead of evaluating it, which would
-        # make this test about reconciliation, not about the hard
-        # floor. Seed a matching ledger entry so NVDA is eligible.
-        main.append_jsonl(main.PERFORMANCE_LOG_PATH, {
+        # already show NVDA as sold (one seeded SELL in
+        # transaction_log.jsonl, no matching BUY) - otherwise main.py
+        # correctly treats positions.json's "sold" status as an
+        # unexplained mismatch and freezes the stock instead of
+        # evaluating it, which would make this test about
+        # reconciliation, not about the hard floor. Seed a matching
+        # transaction_log entry (M-3 fix: reconciliation now reads
+        # sells/buys from transaction_log.jsonl, not performance_log/
+        # event_log) so NVDA is eligible.
+        main.append_jsonl(main.TRANSACTION_LOG_PATH, {
             "event_id": "sell_NVDA_seed", "timestamp": "2026-01-01T00:00:00+00:00",
-            "instrument": "NVDA", "entry_price": 200.0, "exit_price": 200.0,
-            "quantity": 1.5, "realized_pnl_usd": 0.0, "realized_pnl_pct": 0.0,
-            "score_at_decision": 0.3, "decision_zone": "grey_zone",
+            "instrument": "NVDA", "direction": "SELL", "price": 200.0,
+            "quantity": 1.5, "balance_change": 300.0,
         })
 
         with unittest.mock.patch("main.fetch_bitget_data",
@@ -446,6 +567,54 @@ class TestRunIntegration(unittest.TestCase):
 
         positions = main.load_json(main.POSITIONS_PATH, None)
         self.assertEqual(positions["NVDA"]["status"], "held")
+
+    def test_bootstrap_deferred_on_partial_fetch(self):
+        """H-1 (round 2) regression at the integration level: on a
+        true first run (no positions.json yet), if even one stock's
+        fetch is incomplete, run() must not write positions.json at
+        all - not a partially-valid one that would fail validation on
+        the very next run. It must also not raise."""
+        # No positions.json and no history.json written - this is a
+        # genuine cold start.
+        by_stock_partial = [
+            {"underlying": s, "symbol": f"r{s}USDT", "status": "ok",
+             "price": 100.0, "bid": 99.9, "ask": 100.1,
+             "bid_size": 50.0, "ask_size": 50.0, "volume_24h": 1e7, "spread_pct": 0.1}
+            for s in main.STOCKS if s != "TSLA"
+        ]  # TSLA missing entirely from the fetch results
+
+        with unittest.mock.patch("main.fetch_bitget_data", return_value=by_stock_partial), \
+             unittest.mock.patch("main.call_llm") as llm_mock:
+            main.run()  # must not raise
+            llm_mock.assert_not_called()
+
+        self.assertFalse(os.path.exists(main.POSITIONS_PATH),
+                          "positions.json must not be written from a partial bootstrap fetch")
+        heartbeats = main.read_jsonl(main.HEARTBEAT_LOG_PATH)
+        self.assertTrue(heartbeats)
+        self.assertEqual(heartbeats[-1].get("status"), "bootstrap_incomplete")
+        self.assertIn("TSLA", heartbeats[-1].get("reason", ""))
+
+    def test_bootstrap_succeeds_once_fetch_is_complete(self):
+        """Companion to the test above: once every stock has a usable
+        price, bootstrap must proceed normally and write a valid,
+        immediately-loadable positions.json."""
+        by_stock_complete = [
+            {"underlying": s, "symbol": f"r{s}USDT", "status": "ok",
+             "price": 100.0, "bid": 99.9, "ask": 100.1,
+             "bid_size": 50.0, "ask_size": 50.0, "volume_24h": 1e7, "spread_pct": 0.1}
+            for s in main.STOCKS
+        ]
+
+        with unittest.mock.patch("main.fetch_bitget_data", return_value=by_stock_complete), \
+             unittest.mock.patch("main.call_llm") as llm_mock:
+            main.run()
+
+        positions = main.load_json(main.POSITIONS_PATH, None)
+        self.assertIsNotNone(positions)
+        main.validate_positions_state(positions)  # must not raise
+        self.assertEqual(positions["TSLA"]["status"], "held")
+        self.assertIsNotNone(positions["TSLA"]["quantity"])
 
 
 if __name__ == "__main__":
