@@ -126,7 +126,11 @@ custos/
 │   ├── recent_events.json       # bounded feed (last 20) the dashboard reads,
 │   │                             so it never has to download the full
 │   │                             append-only event_log.jsonl
-│   ├── transaction_log.jsonl    # generated trade records
+│   ├── transaction_log.jsonl    # generated trade records (timestamp, instrument,
+│   │                             direction, price, quantity, balance change)
+│   ├── recent_transactions.json # bounded feed (last 20) the dashboard's Run
+│   │                             Records section reads, same reasoning as
+│   │                             recent_events.json above
 │   ├── performance_log.jsonl    # generated completed round-trip records
 │   ├── performance_summary.json # win rate, realized P&L, Sharpe-like, drawdown
 │   └── latest.json              # snapshot the dashboard reads
