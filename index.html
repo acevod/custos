@@ -312,7 +312,7 @@
     <div class="stat">
       <div class="stat-label">Portfolio value</div>
       <div class="stat-num mono" id="stat-value">—</div>
-      <div class="note" id="stale-note" style="display:none; margin-top:4px;">⚠ stale — some live prices unavailable this cycle</div>
+      <div class="note" id="stale-note" style="display:none; margin-top:4px;"></div>
     </div>
     <div class="stat">
       <div class="stat-label">USDT held</div>
@@ -422,6 +422,14 @@
     return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   }
 
+  function fmtAge(ms) {
+    const hours = Math.floor(ms / (60 * 60 * 1000));
+    if (hours < 1) return Math.round(ms / (60 * 1000)) + 'm';
+    const days = Math.floor(hours / 24);
+    if (days < 1) return hours + 'h';
+    return days + 'd ' + (hours % 24) + 'h';
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = String(str);
@@ -516,9 +524,28 @@
   async function renderStats(latest) {
     const ps = latest.portfolio_summary;
     document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
-    const stale = ps.valuation_status === 'stale' ||
-      (Date.now() - new Date(latest.timestamp).getTime()) > STALE_AFTER_MS;
-    document.getElementById('stale-note').style.display = stale ? 'block' : 'none';
+    // These are two different problems and get two different
+    // messages - conflating them under one generic "stale" warning
+    // previously blamed "prices unavailable" even when the real
+    // cause was simply that the workflow hadn't run again in a
+    // while, which sent people chasing a fetch-failure bug that
+    // wasn't there.
+    const fetchFailed = ps.valuation_status === 'stale';
+    const ageMs = Date.now() - new Date(latest.timestamp).getTime();
+    const tooOld = ageMs > STALE_AFTER_MS;
+    const staleNote = document.getElementById('stale-note');
+    if (fetchFailed && tooOld) {
+      staleNote.textContent = '⚠ stale — some prices failed to fetch last cycle, and no update since ' + fmtAge(ageMs);
+      staleNote.style.display = 'block';
+    } else if (fetchFailed) {
+      staleNote.textContent = '⚠ stale — some live prices were unavailable during the last run';
+      staleNote.style.display = 'block';
+    } else if (tooOld) {
+      staleNote.textContent = '⚠ no update in ' + fmtAge(ageMs) + ' — check whether the scheduled workflow is still running';
+      staleNote.style.display = 'block';
+    } else {
+      staleNote.style.display = 'none';
+    }
     document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
     document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
   }
