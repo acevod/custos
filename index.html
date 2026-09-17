@@ -122,6 +122,32 @@
     max-width: 58ch;
   }
 
+  .freshness {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 14px 0 0;
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin: -8px 0 16px;
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+
   section {
     margin-top: 48px;
   }
@@ -347,6 +373,8 @@
     <p class="thesis-body">A tokenized stock's price can look fine while the wrapper underneath it quietly becomes harder to trade — spread widens, depth thins, volume dries up. Custos watches that structure, not the price, and decides whether to hold, act, or wait based on it alone.</p>
   </section>
 
+  <p class="freshness mono" id="freshness">—</p>
+
   <section class="stat-row hero">
     <div class="stat">
       <div class="stat-label">Portfolio value</div>
@@ -366,6 +394,13 @@
   <section>
     <h2>Holdings</h2>
     <p class="note" style="margin-top:-8px; margin-bottom:16px;">An example paper-trading portfolio of 10 rTokens — no real funds move, but every price, spread, and volume reading is pulled live from Bitget. The same scoring method applies to any Bitget stock rToken.</p>
+    <p class="legend">
+      <span><span class="legend-dot" style="background:var(--healthy)"></span>healthy</span>
+      <span><span class="legend-dot" style="background:var(--watch)"></span>watch</span>
+      <span><span class="legend-dot" style="background:var(--redflag)"></span>red flag</span>
+      <span><span class="legend-dot" style="background:var(--text-dim)"></span>warming up — not enough history yet</span>
+      <span>· score: 0 (worst) to 1 (best) wrapper health</span>
+    </p>
     <div id="holdings" class="holdings"></div>
   </section>
 
@@ -575,6 +610,13 @@
     const fetchFailed = ps.valuation_status === 'stale';
     const ageMs = Date.now() - new Date(latest.timestamp).getTime();
     const tooOld = ageMs > STALE_AFTER_MS;
+    // Always-visible freshness indicator, separate from the
+    // conditional stale-note below - a fresh dashboard should say so
+    // plainly, not just stay silent until something's wrong.
+    const freshness = document.getElementById('freshness');
+    const freshDotColor = tooOld ? 'var(--watch)' : 'var(--healthy)';
+    const freshLabel = tooOld ? 'updated' : 'live · updated';
+    freshness.innerHTML = `<span class="legend-dot" style="background:${freshDotColor}"></span>${freshLabel} ${fmtAge(ageMs)} ago`;
     const staleNote = document.getElementById('stale-note');
     if (fetchFailed && tooOld) {
       staleNote.textContent = '⚠ stale — some prices failed to fetch last cycle, and no update since ' + fmtAge(ageMs);
