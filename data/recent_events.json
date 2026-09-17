@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20260917T090644",
+    "timestamp": "2026-09-17T09:06:44.546439+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (warming up - history still warming up - 5/12 baseline points)",
+    "score": 0.7017,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_KO_20260917T030155",
     "timestamp": "2026-09-17T03:01:55.660499+00:00",
     "type": "sell_hold_evaluation",
