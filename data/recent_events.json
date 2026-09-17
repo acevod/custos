@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20260917T030155",
+    "timestamp": "2026-09-17T03:01:55.660499+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (warming up - history still warming up - 4/12 baseline points)",
+    "score": 0.6693,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_AAPL_20260916T223540",
     "timestamp": "2026-09-16T22:35:40.293795+00:00",
     "type": "sell_hold_evaluation",
