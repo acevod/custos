@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_TSLA_20260917T160511",
+    "timestamp": "2026-09-17T16:05:11.846876+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "TSLA",
+    "action_taken": "HOLD (warming up - history still warming up - 6/12 baseline points)",
+    "score": 0.4467,
+    "score_label": "red_flag",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20260917T090644",
     "timestamp": "2026-09-17T09:06:44.546439+00:00",
     "type": "sell_hold_evaluation",
