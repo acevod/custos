@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AMZN_20260918T084055",
+    "timestamp": "2026-09-18T08:40:55.735043+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AMZN",
+    "action_taken": "HOLD (warming up - history still warming up - 9/12 baseline points)",
+    "score": 0.6655,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_NVDA_20260918T024931",
     "timestamp": "2026-09-18T02:49:31.516061+00:00",
     "type": "sell_hold_evaluation",
