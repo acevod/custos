@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-09-19T02:47:50.359906+00:00",
+  "timestamp": "2026-09-19T08:28:12.233613+00:00",
   "scores": {
     "NVDA": {
-      "score": 0.7322,
+      "score": 0.523,
       "components_used": [
         "spread",
         "depth",
@@ -12,16 +12,16 @@
       ],
       "components_raw": {
         "spread": 0.9955,
-        "depth": 0.9953,
+        "depth": 0.0068,
         "volume_trend": 0.0,
-        "abnormal_movement": 0.9712,
+        "abnormal_movement": 0.9137,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.445991+00:00",
+      "timestamp": "2026-09-19T08:28:13.757231+00:00",
       "label": "watch"
     },
     "TSLA": {
-      "score": 0.5293,
+      "score": 0.5395,
       "components_used": [
         "spread",
         "depth",
@@ -30,17 +30,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9835,
-        "depth": 0.0011,
+        "spread": 0.9973,
+        "depth": 0.0115,
         "volume_trend": 0.0,
-        "abnormal_movement": 0.966,
+        "abnormal_movement": 0.9892,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446155+00:00",
+      "timestamp": "2026-09-19T08:28:13.757422+00:00",
       "label": "watch"
     },
     "AAPL": {
-      "score": 0.7129,
+      "score": 0.6821,
       "components_used": [
         "spread",
         "depth",
@@ -49,17 +49,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8865,
-        "depth": 0.0271,
+        "spread": 0.8566,
+        "depth": 0.0352,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9792,
+        "abnormal_movement": 0.8546,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446314+00:00",
+      "timestamp": "2026-09-19T08:28:13.757641+00:00",
       "label": "watch"
     },
     "AMZN": {
-      "score": 0.7005,
+      "score": 0.6835,
       "components_used": [
         "spread",
         "depth",
@@ -68,17 +68,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8388,
-        "depth": 0.0039,
+        "spread": 0.8387,
+        "depth": 0.0051,
         "volume_trend": 1.0,
-        "abnormal_movement": 1.0,
+        "abnormal_movement": 0.9139,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446448+00:00",
+      "timestamp": "2026-09-19T08:28:13.757809+00:00",
       "label": "watch"
     },
     "GOOGL": {
-      "score": 0.6586,
+      "score": 0.4837,
       "components_used": [
         "spread",
         "depth",
@@ -87,17 +87,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.8004,
-        "depth": 0.8878,
+        "spread": 0.7804,
+        "depth": 0.0024,
         "volume_trend": 0.0,
-        "abnormal_movement": 0.9548,
+        "abnormal_movement": 0.9904,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446595+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-19T08:28:13.757950+00:00",
+      "label": "red_flag"
     },
     "SPY": {
-      "score": 0.7334,
+      "score": 0.5258,
       "components_used": [
         "spread",
         "depth",
@@ -106,17 +106,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9148,
-        "depth": 0.0802,
-        "volume_trend": 1.0,
-        "abnormal_movement": 0.9935,
+        "spread": 0.9004,
+        "depth": 0.1185,
+        "volume_trend": 0.0,
+        "abnormal_movement": 0.935,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446719+00:00",
+      "timestamp": "2026-09-19T08:28:13.758082+00:00",
       "label": "watch"
     },
     "QQQ": {
-      "score": 0.7302,
+      "score": 0.7313,
       "components_used": [
         "spread",
         "depth",
@@ -126,16 +126,16 @@
       ],
       "components_raw": {
         "spread": 0.9986,
-        "depth": 0.0233,
+        "depth": 0.0201,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9294,
+        "abnormal_movement": 0.9382,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446846+00:00",
+      "timestamp": "2026-09-19T08:28:13.758221+00:00",
       "label": "watch"
     },
     "KO": {
-      "score": 0.6763,
+      "score": 0.6361,
       "components_used": [
         "spread",
         "depth",
@@ -144,17 +144,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.7959,
-        "depth": 0.0283,
+        "spread": 0.7845,
+        "depth": 0.0345,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9083,
+        "abnormal_movement": 0.7152,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.446990+00:00",
+      "timestamp": "2026-09-19T08:28:13.758379+00:00",
       "label": "watch"
     },
     "MCD": {
-      "score": 0.9007,
+      "score": 0.9099,
       "components_used": [
         "spread",
         "depth",
@@ -166,14 +166,14 @@
         "spread": 0.8795,
         "depth": 1.0,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9541,
+        "abnormal_movement": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.447123+00:00",
+      "timestamp": "2026-09-19T08:28:13.758523+00:00",
       "label": "healthy"
     },
     "PYPL": {
-      "score": 0.8756,
+      "score": 0.8829,
       "components_used": [
         "spread",
         "depth",
@@ -185,10 +185,10 @@
         "spread": 0.7716,
         "depth": 1.0,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9634,
+        "abnormal_movement": 1.0,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-19T02:47:52.447239+00:00",
+      "timestamp": "2026-09-19T08:28:13.758672+00:00",
       "label": "healthy"
     }
   },
@@ -270,9 +270,9 @@
   "portfolio_summary": {
     "total_usdt_cash": 0.0,
     "total_held_cost_basis_usd": 3000.0,
-    "total_held_market_value_usd": 3025.68,
+    "total_held_market_value_usd": 3024.58,
     "total_portfolio_value_cost_basis_usd": 3000.0,
-    "total_portfolio_value_market_usd": 3025.68,
+    "total_portfolio_value_market_usd": 3024.58,
     "valuation_status": "live",
     "held_stocks": [
       "NVDA",
@@ -294,18 +294,28 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_TSLA_20260919T024750",
-      "timestamp": "2026-09-19T02:47:50.359906+00:00",
+      "event_id": "eval_GOOGL_20260919T082812",
+      "timestamp": "2026-09-19T08:28:12.233613+00:00",
       "type": "sell_hold_evaluation",
-      "instrument": "TSLA",
-      "action_taken": "HOLD",
-      "score": 0.5293,
-      "score_label": "watch",
-      "llm_reasoning": "HOLD\nThe composite score is above the 0.5 sell-blocking threshold, supported by strong spread (0.9835) and abnormal-movement (0.966) readings, suggesting no acute pricing dislocation. However, depth (0.0011) and volume trend (0.0) are extremely weak, indicating thin order-book liquidity and poor recent turnover. This looks like a watch-level liquidity fragility rather than confirmed severe structural stress.",
-      "llm_provider_used": "qwen_bitget",
+      "instrument": "GOOGL",
+      "action_taken": "HOLD (response unparseable - fail-safe default, not a confirmed decision)",
+      "score": 0.4837,
+      "score_label": "red_flag",
+      "llm_reasoning": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - Role: Structural risk monitor for tokenized stock (rToken) on Bitget\n   - Task: Judge health of WRAPPER's liquidity mechanics (spread, order-book depth, volume, abnormal price-move magnitude relative to token's own history)\n   - Token: GOOGL\n   - Current composite health score: 0.4837 (label: red_flag)\n   - Component breakdown: {'spread': 0.7804, 'depth': 0.0024, 'volume_trend': 0.0, 'abnormal_movement': 0.9904, 'weekend': 0.6}\n   - Hard rules already enforced by system:\n     - Score >= 0.5: SELL never executed regardless\n     - Score < 0.25: structural stress severe - lean strongly toward SELL unless specific concrete reason it's temporary artifact\n     - Between 0.25 and 0.5: genuinely ambiguous. Use own judgment - does pattern look like durable structural degradation or explainable short-term artifact? Reasoning decides outcome, not formula.\n   - Output format: First line decision (SELL or HOLD), then 2-3 sentence justification referencing specific components and context. Do not discuss investment quality of GOOGL, only wrapper's structural condition.\n\n2.  **Evaluate Score and Range:**\n   - Score: 0.4837\n   - Range: 0.25 to 0.5 (since 0.4837 < 0.5 and >= 0.25)\n   - This falls in the \"genuinely ambiguous\" zone where my judgment is called for.\n\n3.  **Analyze Components:**\n   - spread: 0.7804 (high = bad? Need to interpret. Typically in these scores, higher value likely means worse health/higher risk. But let's check context: \"spread\" component - higher spread means worse liquidity. 0.7804 is high, indicating poor spread.)\n   - depth: 0.0024 (very low. Order book depth is terrible. Low depth means little liquidity, high slippage risk.)\n   - volume_trend: 0.0 (zero. No volume trend, or volume is flat/dead. This is critical - no trading activity.)\n   - abnormal_movement: 0.9904 (extremely high. Price moves abnormally relative to token's own history. Likely means massive, unexplained price swing.)\n   - weekend: 0.6 (moderate. Weekend effect, possibly lower liquidity, but not the primary driver.)\n\n   Interpretation: \n   - The score is 0.4837, just under 0.5.\n   - Components show severe issues: depth essentially zero, volume trend zero, spread very bad, abnormal movement near maximum.\n   - However, there's a `weekend` component at 0.6. This might be a known scheduled event (weekend). The rules mention: \"unless you have a specific, concrete reason to think the reading is a temporary artifact (e.g. a known scheduled event) rather than genuine stress.\"\n   - Weekend is a known scheduled event. But the other components (depth 0.0024, volume_trend 0.0, abnormal_movement 0.9904) are extreme and not solely explained by weekend. Weekend might contribute to lower depth/volume, but abnormal_movement at 0.9904 suggests something more than just \"it's weekend\".\n   - The label already says \"red_flag\". The system hard-rules score >= 0.5",
+      "llm_provider_used": "openrouter",
       "llm_attempts": [
         {
           "provider": "qwen_bitget",
+          "status": "failed",
+          "error": "timeout"
+        },
+        {
+          "provider": "groq",
+          "status": "failed",
+          "error": "404 Client Error: Not Found for url: https://api.groq.com/openai/v1/chat/completions"
+        },
+        {
+          "provider": "openrouter",
           "status": "success",
           "error": null
         }
