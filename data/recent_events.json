@@ -1,5 +1,23 @@
 [
   {
+    "event_id": "eval_TSLA_20260919T024750",
+    "timestamp": "2026-09-19T02:47:50.359906+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "TSLA",
+    "action_taken": "HOLD",
+    "score": 0.5293,
+    "score_label": "watch",
+    "llm_reasoning": "HOLD\nThe composite score is above the 0.5 sell-blocking threshold, supported by strong spread (0.9835) and abnormal-movement (0.966) readings, suggesting no acute pricing dislocation. However, depth (0.0011) and volume trend (0.0) are extremely weak, indicating thin order-book liquidity and poor recent turnover. This looks like a watch-level liquidity fragility rather than confirmed severe structural stress.",
+    "llm_provider_used": "qwen_bitget",
+    "llm_attempts": [
+      {
+        "provider": "qwen_bitget",
+        "status": "success",
+        "error": null
+      }
+    ]
+  },
+  {
     "event_id": "eval_NVDA_20260918T221142",
     "timestamp": "2026-09-18T22:11:42.391394+00:00",
     "type": "sell_hold_evaluation",

@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-09-18T22:11:42.391394+00:00",
+  "timestamp": "2026-09-19T02:47:50.359906+00:00",
   "scores": {
     "NVDA": {
-      "score": 0.7035,
+      "score": 0.7322,
       "components_used": [
         "spread",
         "depth",
@@ -11,17 +11,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.982,
-        "depth": 0.4071,
-        "volume_trend": 1.0,
-        "abnormal_movement": 0.2828,
-        "weekend": 0.8
+        "spread": 0.9955,
+        "depth": 0.9953,
+        "volume_trend": 0.0,
+        "abnormal_movement": 0.9712,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369014+00:00",
+      "timestamp": "2026-09-19T02:47:52.445991+00:00",
       "label": "watch"
     },
     "TSLA": {
-      "score": 0.7734,
+      "score": 0.5293,
       "components_used": [
         "spread",
         "depth",
@@ -30,17 +30,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9753,
-        "depth": 0.1041,
-        "volume_trend": 1.0,
-        "abnormal_movement": 0.9439,
-        "weekend": 0.8
+        "spread": 0.9835,
+        "depth": 0.0011,
+        "volume_trend": 0.0,
+        "abnormal_movement": 0.966,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369181+00:00",
+      "timestamp": "2026-09-19T02:47:52.446155+00:00",
       "label": "watch"
     },
     "AAPL": {
-      "score": 0.8892,
+      "score": 0.7129,
       "components_used": [
         "spread",
         "depth",
@@ -49,17 +49,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.994,
-        "depth": 0.9645,
+        "spread": 0.8865,
+        "depth": 0.0271,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.6389,
-        "weekend": 0.8
+        "abnormal_movement": 0.9792,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369361+00:00",
-      "label": "healthy"
+      "timestamp": "2026-09-19T02:47:52.446314+00:00",
+      "label": "watch"
     },
     "AMZN": {
-      "score": 0.7545,
+      "score": 0.7005,
       "components_used": [
         "spread",
         "depth",
@@ -68,17 +68,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9411,
-        "depth": 0.0066,
+        "spread": 0.8388,
+        "depth": 0.0039,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9895,
-        "weekend": 0.8
+        "abnormal_movement": 1.0,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369501+00:00",
+      "timestamp": "2026-09-19T02:47:52.446448+00:00",
       "label": "watch"
     },
     "GOOGL": {
-      "score": 0.8003,
+      "score": 0.6586,
       "components_used": [
         "spread",
         "depth",
@@ -87,17 +87,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9914,
-        "depth": 0.368,
-        "volume_trend": 1.0,
-        "abnormal_movement": 0.7942,
-        "weekend": 0.8
+        "spread": 0.8004,
+        "depth": 0.8878,
+        "volume_trend": 0.0,
+        "abnormal_movement": 0.9548,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369625+00:00",
-      "label": "healthy"
+      "timestamp": "2026-09-19T02:47:52.446595+00:00",
+      "label": "watch"
     },
     "SPY": {
-      "score": 0.7506,
+      "score": 0.7334,
       "components_used": [
         "spread",
         "depth",
@@ -106,17 +106,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9856,
-        "depth": 0.0574,
+        "spread": 0.9148,
+        "depth": 0.0802,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.8635,
-        "weekend": 0.8
+        "abnormal_movement": 0.9935,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369747+00:00",
+      "timestamp": "2026-09-19T02:47:52.446719+00:00",
       "label": "watch"
     },
     "QQQ": {
-      "score": 0.7874,
+      "score": 0.7302,
       "components_used": [
         "spread",
         "depth",
@@ -125,17 +125,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9862,
-        "depth": 0.4347,
+        "spread": 0.9986,
+        "depth": 0.0233,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.6694,
-        "weekend": 0.8
+        "abnormal_movement": 0.9294,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.369881+00:00",
+      "timestamp": "2026-09-19T02:47:52.446846+00:00",
       "label": "watch"
     },
     "KO": {
-      "score": 0.7565,
+      "score": 0.6763,
       "components_used": [
         "spread",
         "depth",
@@ -144,17 +144,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.932,
-        "depth": 0.0321,
+        "spread": 0.7959,
+        "depth": 0.0283,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.9854,
-        "weekend": 0.8
+        "abnormal_movement": 0.9083,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.370022+00:00",
+      "timestamp": "2026-09-19T02:47:52.446990+00:00",
       "label": "watch"
     },
     "MCD": {
-      "score": 0.7537,
+      "score": 0.9007,
       "components_used": [
         "spread",
         "depth",
@@ -163,17 +163,17 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9558,
-        "depth": 0.1123,
+        "spread": 0.8795,
+        "depth": 1.0,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.8614,
-        "weekend": 0.8
+        "abnormal_movement": 0.9541,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.370145+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-19T02:47:52.447123+00:00",
+      "label": "healthy"
     },
     "PYPL": {
-      "score": 0.7476,
+      "score": 0.8756,
       "components_used": [
         "spread",
         "depth",
@@ -182,14 +182,14 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9048,
-        "depth": 0.021,
+        "spread": 0.7716,
+        "depth": 1.0,
         "volume_trend": 1.0,
-        "abnormal_movement": 0.986,
-        "weekend": 0.8
+        "abnormal_movement": 0.9634,
+        "weekend": 0.6
       },
-      "timestamp": "2026-09-18T22:11:44.370258+00:00",
-      "label": "watch"
+      "timestamp": "2026-09-19T02:47:52.447239+00:00",
+      "label": "healthy"
     }
   },
   "positions": {
@@ -270,9 +270,9 @@
   "portfolio_summary": {
     "total_usdt_cash": 0.0,
     "total_held_cost_basis_usd": 3000.0,
-    "total_held_market_value_usd": 3025.1,
+    "total_held_market_value_usd": 3025.68,
     "total_portfolio_value_cost_basis_usd": 3000.0,
-    "total_portfolio_value_market_usd": 3025.1,
+    "total_portfolio_value_market_usd": 3025.68,
     "valuation_status": "live",
     "held_stocks": [
       "NVDA",
@@ -294,14 +294,14 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_NVDA_20260918T221142",
-      "timestamp": "2026-09-18T22:11:42.391394+00:00",
+      "event_id": "eval_TSLA_20260919T024750",
+      "timestamp": "2026-09-19T02:47:50.359906+00:00",
       "type": "sell_hold_evaluation",
-      "instrument": "NVDA",
+      "instrument": "TSLA",
       "action_taken": "HOLD",
-      "score": 0.7035,
+      "score": 0.5293,
       "score_label": "watch",
-      "llm_reasoning": "HOLD\n\nThe composite score of 0.7035 is well above the 0.5 threshold, supported by very strong spread and volume-trend readings, indicating the wrapper\u2019s core trading mechanics remain functional. The weaker depth score and low abnormal-movement component suggest thinner order-book resilience and some recent price-move stress, but not severe enough to indicate durable structural failure. This looks more like a watch-level liquidity fragility than an actionable structural breakdown.",
+      "llm_reasoning": "HOLD\nThe composite score is above the 0.5 sell-blocking threshold, supported by strong spread (0.9835) and abnormal-movement (0.966) readings, suggesting no acute pricing dislocation. However, depth (0.0011) and volume trend (0.0) are extremely weak, indicating thin order-book liquidity and poor recent turnover. This looks like a watch-level liquidity fragility rather than confirmed severe structural stress.",
       "llm_provider_used": "qwen_bitget",
       "llm_attempts": [
         {
