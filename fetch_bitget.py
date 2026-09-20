@@ -44,9 +44,10 @@ SYMBOLS = {
 def fetch_ticker(symbol: str) -> dict:
     """Fetch full ticker: lastPrice, bid1/ask1 price+size, volume24h.
     Retries up to MAX_RETRIES times with linear backoff on 429, 5xx
-    and connection-level errors; re-raises the last error when the
-    retries are exhausted (the caller converts it to a per-symbol
-    error entry, exactly as before)."""
+    and connection-level errors (timeouts, resets). Non-retryable 4xx
+    responses (bad symbol, forbidden...) fail immediately instead of
+    burning three attempts. The last error is re-raised when retries
+    are exhausted (the caller converts it to a per-symbol error entry)."""
     url = f"{BASE_URL}/tickers"
     params = {"category": "SPOT", "symbol": symbol}
     last_err = None
@@ -54,20 +55,50 @@ def fetch_ticker(symbol: str) -> dict:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = SESSION.get(url, params=params, timeout=10)
-            if resp.status_code == 429 or resp.status_code >= 500:
-                if attempt < MAX_RETRIES:
-                    time.sleep(BACKOFF_BASE_SECONDS * attempt)
-                    continue
-            resp.raise_for_status()
-            rows = resp.json().get("data", [])
-            return rows[0] if rows else {}
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             last_err = e
             if attempt < MAX_RETRIES:
                 time.sleep(BACKOFF_BASE_SECONDS * attempt)
                 continue
             raise
+
+        if resp.status_code == 429 or resp.status_code >= 500:
+            last_err = requests.exceptions.HTTPError(f"HTTP {resp.status_code}", response=resp)
+            if attempt < MAX_RETRIES:
+                time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                continue
+            raise last_err
+
+        resp.raise_for_status()  # other 4xx: not retryable, raises immediately
+        try:
+            payload = resp.json()
+        except ValueError as e:  # includes requests' JSONDecodeError
+            last_err = e
+            if attempt < MAX_RETRIES:
+                time.sleep(BACKOFF_BASE_SECONDS * attempt)
+                continue
+            raise
+        rows = payload.get("data") if isinstance(payload, dict) else None
+        if isinstance(rows, list):
+            return rows[0] if rows and isinstance(rows[0], dict) else {}
+        return rows if isinstance(rows, dict) else {}
     raise last_err if last_err else RuntimeError("unreachable")
+
+
+def raw_diagnostics(ticker: dict) -> dict:
+    """Small whitelist of the RAW ticker fields needed to work out what
+    volume/size fields actually mean (audit C-1): timestamp, last price,
+    best bid/ask PRICE and size (Bitget has no historical ticker/order-book
+    API, so spread can only be reconstructed if it is recorded as we go)
+    and anything that looks like volume/turnover/amount. Public market
+    data only."""
+    keep = {"ts", "lastPrice", "bid1Price", "ask1Price", "bid1Size", "ask1Size"}
+    out = {}
+    for key, value in ticker.items():
+        low = str(key).lower()
+        if key in keep or any(t in low for t in ("vol", "turnover", "amount", "quote", "base")):
+            out[str(key)] = value if isinstance(value, (str, int, float)) or value is None else str(value)
+    return out
 
 
 def _finite_positive(value: float | None) -> bool:
@@ -163,6 +194,7 @@ def fetch_bitget_data() -> list[dict]:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "bitget_api_v3",
                 "status": "ok",
+                "raw_diagnostics": raw_diagnostics(ticker),
             })
         except Exception as e:
             results.append({
