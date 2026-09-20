@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import main
+from _fixtures import FIXED_NOW, FixedDatetime, open_market_stamps
 from health_score import score_spread, score_weekend_afterhours, calculate_composite_score
 from fetch_bitget import validate_ticker
 
@@ -97,8 +98,11 @@ class TestCheckActionable(unittest.TestCase):
     """H2 fix: actionability requires enough components AND a mature
     baseline, not just a component count."""
 
-    def _history(self, n):
-        return {"price": [100.0] * n, "volume": [1.0] * n, "depth": [1.0] * n}
+    def _history(self, n, hours_apart=6.0):
+        from datetime import timedelta
+        base = datetime(2026, 9, 10, tzinfo=timezone.utc)
+        return {"price": [100.0] * n, "volume": [1.0] * n, "depth": [1.0] * n,
+                "ts": [(base + timedelta(hours=hours_apart * i)).isoformat() for i in range(n)]}
 
     def test_blocks_insufficient_components(self):
         result = {"score": 0.3, "components_used": ["spread", "weekend"], "label": "red_flag"}
@@ -108,15 +112,32 @@ class TestCheckActionable(unittest.TestCase):
         self.assertIn("components", reason)
 
     def test_blocks_immature_history(self):
-        result = {"score": 0.3, "components_used": ["spread", "depth", "volume_trend", "weekend"],
+        result = {"score": 0.3, "components_used": ["spread", "depth", "abnormal_movement", "weekend"],
                   "label": "red_flag"}
         history = {"NVDA": self._history(3)}
         eligible, reason = main.check_actionable("NVDA", result, history)
         self.assertFalse(eligible)
         self.assertIn("warming up", reason)
 
+    def test_blocks_baseline_that_spans_too_little_time(self):
+        # 12 points squeezed into ~11 hours is NOT a mature baseline.
+        result = {"score": 0.3, "components_used": ["spread", "depth", "abnormal_movement", "weekend"],
+                  "label": "red_flag"}
+        history = {"NVDA": self._history(main.MIN_HISTORY_POINTS, hours_apart=1.0)}
+        eligible, reason = main.check_actionable("NVDA", result, history)
+        self.assertFalse(eligible)
+        self.assertIn("warming up", reason)
+
+    def test_blocks_history_without_timestamps(self):
+        result = {"score": 0.3, "components_used": ["spread", "depth", "abnormal_movement", "weekend"],
+                  "label": "red_flag"}
+        hist = self._history(main.MIN_HISTORY_POINTS)
+        hist["ts"] = [None] * main.MIN_HISTORY_POINTS
+        eligible, _ = main.check_actionable("NVDA", result, {"NVDA": hist})
+        self.assertFalse(eligible)
+
     def test_allows_mature_stock(self):
-        result = {"score": 0.3, "components_used": ["spread", "depth", "volume_trend", "weekend"],
+        result = {"score": 0.3, "components_used": ["spread", "depth", "abnormal_movement", "weekend"],
                   "label": "red_flag"}
         history = {"NVDA": self._history(main.MIN_HISTORY_POINTS)}
         eligible, _ = main.check_actionable("NVDA", result, history)
@@ -408,8 +429,11 @@ class TestRunIntegration(unittest.TestCase):
         self._cwd = os.getcwd()
         os.chdir(self._tmpdir.name)
         os.makedirs("data", exist_ok=True)
+        self._clock = unittest.mock.patch("main.datetime", FixedDatetime)
+        self._clock.start()
 
     def tearDown(self):
+        self._clock.stop()
         os.chdir(self._cwd)
         self._tmpdir.cleanup()
 
@@ -438,11 +462,16 @@ class TestRunIntegration(unittest.TestCase):
                 }
         return positions
 
-    def _mature_history(self, n=main.MIN_HISTORY_POINTS):
+    def _mature_history(self, n=main.MIN_HISTORY_POINTS, scores=None, stressed=False):
+        depth = [200.0 + (i % 3) for i in range(n)]
+        if stressed:  # the two most recent readings are thin (smoothing needs both)
+            depth[-2:] = [4.0, 4.0]
         return {"NVDA": {
-            "volume": [50_000_000.0] * n,
-            "price": [200.0] * n,
-            "depth": [200.0] * n,
+            "volume": [50_000_000.0 + (i % 3) * 1_000 for i in range(n)],
+            "price": [200.0 + (i % 2) * 0.1 for i in range(n)],
+            "depth": depth,
+            "ts": open_market_stamps(n),
+            "score": scores if scores is not None else [0.9, 0.9],
         }}
 
     def _healthy_nvda_fetch_entry(self):
@@ -451,9 +480,19 @@ class TestRunIntegration(unittest.TestCase):
         # above SELL_CEILING (0.5) / at BUYBACK_STRONG territory.
         return {
             "underlying": "NVDA", "symbol": "rNVDAUSDT", "status": "ok",
-            "price": 200.0, "bid": 199.9, "ask": 200.1,
+            "price": 200.05, "bid": 199.9, "ask": 200.1,
             "bid_size": 100.0, "ask_size": 100.0,
             "volume_24h": 50_000_000.0, "spread_pct": 0.1,
+        }
+
+    def _stressed_nvda_fetch_entry(self):
+        # Wide spread + thin book: composite lands in the sell grey zone
+        # (< SELL_CEILING) while still having >= 4 components.
+        return {
+            "underlying": "NVDA", "symbol": "rNVDAUSDT", "status": "ok",
+            "price": 200.05, "bid": 198.0, "ask": 202.0,
+            "bid_size": 2.0, "ask_size": 2.0,
+            "volume_24h": 5_000_000.0, "spread_pct": 2.0,
         }
 
     def _write_state(self, history, positions):
@@ -556,14 +595,16 @@ class TestRunIntegration(unittest.TestCase):
         completion from the LLM must not raise inside run() - it
         should fail closed to HOLD, and state must still be
         persisted for this cycle."""
-        self._write_state(self._mature_history(), self._base_positions("held"))
+        self._write_state(self._mature_history(scores=[0.3, 0.3], stressed=True),
+                          self._base_positions("held"))
 
         with unittest.mock.patch("main.fetch_bitget_data",
-                                  return_value=[self._healthy_nvda_fetch_entry()]), \
+                                  return_value=[self._stressed_nvda_fetch_entry()]), \
              unittest.mock.patch("main.call_llm",
                                   return_value={"success": True, "content": "   \n  ",
-                                                "provider_used": "test", "attempts": []}):
+                                                "provider_used": "test", "attempts": []}) as llm_mock:
             main.run()  # must not raise
+            llm_mock.assert_called_once()  # the LLM really was consulted
 
         positions = main.load_json(main.POSITIONS_PATH, None)
         self.assertEqual(positions["NVDA"]["status"], "held")
