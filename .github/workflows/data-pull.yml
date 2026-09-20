@@ -19,6 +19,9 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
+    # A hung provider must not hold the shared state lock for 6 hours
+    # (the default job timeout).
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,7 +56,17 @@ jobs:
           # commit would fail the step and break the schedule.
           if git diff --staged --quiet; then
             echo "No data changes to commit."
-          else
-            git commit -m "Update monitoring data [automated]"
-            git push
+            exit 0
           fi
+          git commit -m "Update monitoring data [automated]"
+          # If someone pushed to main while this run was in flight, rebase
+          # our data commit on top instead of losing the whole cycle.
+          for attempt in 1 2 3; do
+            if git pull --rebase --autostash origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "push attempt ${attempt} failed - retrying"
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push data after 3 attempts"
+          exit 1
