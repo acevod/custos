@@ -21,13 +21,16 @@ Built for the **Agentic Trading** track (Open Theme) of Bitget AI Hackathon S2.
 
 ## Why this exists
 
-Tokenized stocks (rTokens) trade 24/7, but the underlying shares they represent don't —
-NASDAQ and NYSE still close nights and weekends. Outside those hours, Bitget supplies
-liquidity for rTokens internally rather than routing to the real exchange. That's a
-different liquidity *mechanism*, not automatically a worse one, but it's a risk that has
-nothing to do with whether the underlying company is a good investment. A holder has no
-easy way to tell "the stock dropped because of bad earnings" apart from "the wrapper's
-liquidity is thinning" just by watching the price.
+Tokenized stocks (rTokens) trade around the clock on Bitget, but the shares they represent
+do not: US stock trading runs nearly 24/5 through overnight sessions and stops for the
+weekend and market holidays. In this project's data (Bitget's own hourly candles, five
+weekends), an rToken's volume tracks the underlying stock's activity from Sunday 20:00 ET
+to Friday 20:00 ET, and falls to between a few and roughly 150 tokens an hour (NVDA) during
+the weekend window. The order book changes too: for seven of the ten tokens the median
+top-of-book size is roughly 10-100x smaller on weekends. That is a different liquidity *mechanism*, not automatically a worse
+one, but it is a risk that has nothing to do with whether the underlying company is a good
+investment. A holder has no easy way to tell "the stock dropped because of bad earnings"
+apart from "the wrapper's liquidity is thinning" just by watching the price.
 
 Custos is a narrow, honest attempt at that second problem: a background monitor that
 reacts to the *wrapper's* condition, never to price direction or the company's
@@ -67,7 +70,7 @@ price drop if its own liquidity mechanics look normal.
 |---|---|---|---|
 | Spread | 30% | Fixed threshold | Real-time bid/ask spread |
 | Top-of-book size | 25% | Own history, same market regime | Best-bid + best-ask size vs this token's own recent MEDIAN, compared only with readings from the same regime (market open / weekday night / weekend) and lightly smoothed — a thin book is fragile even when the spread looks tight. This is top-of-book only, not full multi-level order-book depth |
-| Abnormal movement | 25% | Own history | How large the latest price move is relative to this token's own recent volatility (normalised for elapsed time, skipped across gaps > 12h) — direction-agnostic, a sharp move up scores the same as a sharp move down. Note it does react to any large price move, including a genuine earnings gap; its 20% weight is what keeps that from triggering a sale on its own |
+| Abnormal movement | 25% | Own history | How large the latest price move is relative to this token's own recent volatility (normalised for elapsed time, skipped across gaps > 12h) — direction-agnostic, a sharp move up scores the same as a sharp move down. Note it does react to any large price move, including a genuine earnings gap; it cannot push the composite below the 0.5 sell ceiling on its own, so a lone price shock never triggers a sale |
 | Weekend / after-hours | 20% | Fixed calendar | A deliberate small penalty reflecting that Bitget's rToken liquidity works differently outside regular US hours: 1.0 in regular hours, 0.8 on weekdays outside them, 0.6 in the weekend window (Fri 20:00 ET → Sun 20:00 ET) and on market holidays (from 20:00 ET the evening before to 20:00 ET on the holiday - verified on Labor Day 2026). DST-aware (America/New_York); the NYSE holiday table covers 2026 only - extend it yearly. |
 
 Weights are heuristic, manually tuned — not the result of backtesting, and that's
@@ -169,8 +172,8 @@ the live artifact. To run the orchestrator manually:
 
 ```bash
 pip install -r requirements.txt
-export GROQ_API_KEY=...        # free tier, no card required
-export OPENROUTER_API_KEY=...   # free tier, no card required
+export GROQ_API_KEY=...        # a free tier exists - check each provider's current terms
+export OPENROUTER_API_KEY=...   # same
 python main.py
 ```
 Run the tests with `python -m unittest discover -s tests -v` (they use a temporary
@@ -221,8 +224,8 @@ chain falls back to Groq then OpenRouter automatically.
   rather than crashing) but recovery still needs a manual code change.
 - **Volume is deliberately not a score component.** Bitget's `volume24h` is a counter that
   resets at 16:00 UTC (00:00 UTC+8) and, from Sunday 20:00 ET to Friday 20:00 ET, it mirrors the
-  trading volume of the underlying US stock (about $45B/day for NVDA) rather than trading on
-  Bitget; only in the weekend window does it show Bitget's own tiny volume. This was checked against
+  trading volume of the underlying US stock (about $45B on one observed day for NVDA) rather than trading on
+  Bitget; only in the weekend window (and on market holidays) does it show Bitget's own tiny volume. This was checked against
   Bitget's own hourly candles. It says nothing about the wrapper's liquidity, so it is recorded
   (for frozen-snapshot detection and diagnostics) but never scored.
 - **Weekend baselines need a weekend of data.** Readings are compared only with the same
@@ -239,7 +242,10 @@ chain falls back to Groq then OpenRouter automatically.
 - **Heuristic weights.** The four component weights were set manually based on reasoning
   about what each signal means, not fit to historical data.
 - **Paper execution model.** Execution uses the available top-of-book price and a
-  configured fee. It does not yet model full market impact or partial fills.
+  configured fee for the whole quantity. It does not yet model market impact or partial
+  fills, and that matters: on weekends the best ask can hold less than one token (a live
+  reading showed 0.67 tokens, about $148) while a paper position is roughly $300, so a real
+  order of that size would walk further into the book.
 - **Partial data on first runs.** If a ticker fails to return usable execution data,
   the action path refuses to mutate state and logs an explicit HOLD/WAIT reason.
   JSONL readers also tolerate isolated corrupt lines.
