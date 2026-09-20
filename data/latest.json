@@ -1,18 +1,18 @@
 {
-  "timestamp": "2026-09-20T18:22:54.034019+00:00",
+  "timestamp": "2026-09-20T22:02:29.772853+00:00",
   "schema_version": 2,
   "scores": {
     "NVDA": {
-      "score": 0.8264,
+      "score": 0.8183,
       "components_used": [
         "spread",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9774,
+        "spread": 0.9638,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023772+00:00",
+      "timestamp": "2026-09-20T22:02:31.755620+00:00",
       "label": "warming_up"
     },
     "TSLA": {
@@ -25,7 +25,7 @@
         "spread": 0.8434,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023788+00:00",
+      "timestamp": "2026-09-20T22:02:31.755650+00:00",
       "label": "warming_up"
     },
     "AAPL": {
@@ -38,7 +38,7 @@
         "spread": 0.6622,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023805+00:00",
+      "timestamp": "2026-09-20T22:02:31.755676+00:00",
       "label": "warming_up"
     },
     "AMZN": {
@@ -51,46 +51,46 @@
         "spread": 0.7204,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023817+00:00",
+      "timestamp": "2026-09-20T22:02:31.755697+00:00",
       "label": "warming_up"
     },
     "GOOGL": {
-      "score": 0.828,
+      "score": 0.7937,
       "components_used": [
         "spread",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.98,
+        "spread": 0.9228,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023828+00:00",
+      "timestamp": "2026-09-20T22:02:31.755716+00:00",
       "label": "warming_up"
     },
     "SPY": {
+      "score": 0.8353,
+      "components_used": [
+        "spread",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9921,
+        "weekend": 0.6
+      },
+      "timestamp": "2026-09-20T22:02:31.755733+00:00",
+      "label": "warming_up"
+    },
+    "QQQ": {
       "score": 0.8392,
       "components_used": [
         "spread",
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9987,
+        "spread": 0.9986,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023838+00:00",
-      "label": "warming_up"
-    },
-    "QQQ": {
-      "score": 0.8042,
-      "components_used": [
-        "spread",
-        "weekend"
-      ],
-      "components_raw": {
-        "spread": 0.9404,
-        "weekend": 0.6
-      },
-      "timestamp": "2026-09-20T18:22:56.023849+00:00",
+      "timestamp": "2026-09-20T22:02:31.755749+00:00",
       "label": "warming_up"
     },
     "KO": {
@@ -103,8 +103,8 @@
         "spread": 0.7618,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023879+00:00",
-      "label": "warming_up"
+      "timestamp": "2026-09-20T22:02:31.755781+00:00",
+      "label": "no_fresh_signal"
     },
     "MCD": {
       "score": 0.7677,
@@ -116,7 +116,7 @@
         "spread": 0.8795,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023888+00:00",
+      "timestamp": "2026-09-20T22:02:31.755793+00:00",
       "label": "no_fresh_signal"
     },
     "PYPL": {
@@ -129,7 +129,7 @@
         "spread": 0.7716,
         "weekend": 0.6
       },
-      "timestamp": "2026-09-20T18:22:56.023895+00:00",
+      "timestamp": "2026-09-20T22:02:31.755802+00:00",
       "label": "no_fresh_signal"
     }
   },
@@ -211,9 +211,9 @@
   "portfolio_summary": {
     "total_usdt_cash": 0.0,
     "total_held_cost_basis_usd": 3000.0,
-    "total_held_market_value_usd": 2997.26,
+    "total_held_market_value_usd": 2997.57,
     "total_portfolio_value_cost_basis_usd": 3000.0,
-    "total_portfolio_value_market_usd": 2997.26,
+    "total_portfolio_value_market_usd": 2997.57,
     "valuation_status": "live",
     "held_stocks": [
       "NVDA",
@@ -237,8 +237,8 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_AAPL_20260920T182254034019",
-      "timestamp": "2026-09-20T18:22:54.034019+00:00",
+      "event_id": "eval_AAPL_20260920T220229772853",
+      "timestamp": "2026-09-20T22:02:29.772853+00:00",
       "type": "sell_hold_evaluation",
       "instrument": "AAPL",
       "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
