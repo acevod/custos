@@ -370,7 +370,7 @@
 
   <section class="thesis">
     <p class="thesis-label">The problem</p>
-    <p class="thesis-body">A tokenized stock's price can look fine while the wrapper underneath it quietly becomes harder to trade — spread widens, depth thins, volume dries up. Custos watches that structure, not the price, and decides whether to hold, act, or wait based on it alone.</p>
+    <p class="thesis-body">A tokenized stock's price can look fine while the wrapper underneath it quietly becomes harder to trade — spread widens, depth thins. Custos watches that structure, not the price, and decides whether to hold, act, or wait based on it alone.</p>
   </section>
 
   <p class="freshness mono" id="freshness">—</p>
@@ -393,7 +393,7 @@
 
   <section>
     <h2>Holdings</h2>
-    <p class="note" style="margin-top:-8px; margin-bottom:16px;">An example paper-trading portfolio of 10 rTokens — no real funds move, but every price, spread, and volume reading is pulled live from Bitget. The same scoring method applies to any Bitget stock rToken.</p>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">An example paper-trading portfolio of 10 rTokens — no real funds move, but every price and spread reading is pulled live from Bitget. The same scoring method applies to any Bitget stock rToken.</p>
     <p class="legend">
       <span><span class="legend-dot" style="background:var(--healthy)"></span>healthy</span>
       <span><span class="legend-dot" style="background:var(--watch)"></span>watch</span>
@@ -413,7 +413,7 @@
 
   <section>
     <h2>Performance</h2>
-    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Realized profit/loss, win rate, and drawdown — computed only from completed round-trip trades (a sell followed eventually by a buy-back), not from price movement while simply holding.</p>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Two views, kept separate on purpose. <strong>Round trip</strong> = a sell followed by its buy-back, measured against simply holding through it (“gain vs holding”). <strong>Exit</strong> = the sell price against the original entry, which ignores what re-entering cost. Neither predicts price direction; the point is whether stepping aside from structural stress helped.</p>
     <div id="perf"></div>
   </section>
 
@@ -425,7 +425,7 @@
   </section>
 
   <footer>
-    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price, only by wrapper health: spread, order-book depth, volume, and movement abnormal for that token's own history.</p>
+    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price, only by wrapper health: spread, order-book depth, and movement abnormal for that token's own history.</p>
   </footer>
 </div>
 
@@ -439,6 +439,7 @@
     watch: 'var(--watch)',
     red_flag: 'var(--redflag)',
     warming_up: 'var(--text-dim)',
+    no_fresh_signal: 'var(--text-dim)',
     unknown: 'var(--text-dim)',
   };
   const STATUS_LABEL = {
@@ -446,12 +447,14 @@
     watch: 'watch',
     red_flag: 'red flag',
     warming_up: 'warming up',
+    no_fresh_signal: 'no fresh signal',
     unknown: 'no data',
   };
 
-  // A run is scheduled every 4 hours; flag the dashboard as stale if
-  // the last snapshot is significantly older than that.
-  const STALE_AFTER_MS = 6 * 60 * 60 * 1000;
+  // A run is scheduled every 4 hours, but GitHub's scheduler is jittery:
+  // observed gaps between real runs were 3-8h. Only flag the dashboard as
+  // stale once the gap is clearly beyond that, or the banner cries wolf.
+  const STALE_AFTER_MS = 10 * 60 * 60 * 1000;
 
   async function fetchJSON(path) {
     const res = await fetch(path, { cache: 'no-store' });
@@ -493,6 +496,8 @@
 
   function fmtTime(iso) {
     const d = new Date(iso);
+    // An invalid timestamp must not throw and blank the whole section.
+    if (isNaN(d.getTime())) return '—';
     return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
   }
 
@@ -535,12 +540,16 @@
     if (!events.length) {
       return '<p class="empty">No decisions logged yet — the agent evaluates every cycle once enough history builds up to score a token.</p>';
     }
-    return events.map(e => {
+    return events.map(e => { try {
       let decision, color;
       if (e.type === 'sell') { decision = 'SOLD'; color = 'var(--redflag)'; }
       else if (e.type === 'buy_back') { decision = 'BOUGHT BACK'; color = 'var(--healthy)'; }
       else { decision = (e.action_taken || '').toUpperCase(); color = 'var(--text-dim)'; }
-      const reasoning = escapeHtml((e.llm_reasoning || '').replace(/\n+/g, ' ').trim());
+      // Reasoning is capped server-side; clip again defensively so an old
+      // long entry (e.g. raw chain-of-thought) can never flood the page.
+      let rawReason = String(e.llm_reasoning || '').replace(/\n+/g, ' ').trim();
+      if (rawReason.length > 400) rawReason = rawReason.slice(0, 399) + '…';
+      const reasoning = escapeHtml(rawReason);
       const reasoningHtml = reasoning
         ? `<span class="log-why">WHY</span>${reasoning}`
         : '';
@@ -549,21 +558,27 @@
           <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${escapeHtml(e.instrument)}</span> · <span style="color:${color}">${escapeHtml(decision)}</span></div>
           <p class="log-reasoning">${reasoningHtml}</p>
         </div>`;
-    }).join('');
+    } catch (err) { return ''; } }).join('');
   }
 
   function renderPerformance(perf) {
-    if (!perf || perf.trade_count === 0) {
-      return '<p class="empty">No trades yet — every holding has stayed within its own healthy range so far.</p>';
+    const exits = perf ? (perf.exit_count ?? perf.trade_count ?? 0) : 0;
+    if (!perf || exits === 0) {
+      return '<p class="empty">No exits yet — no holding has been sold. Sells only happen once a token has a mature baseline, a low score confirmed over consecutive runs, and the live-trading switch is on.</p>';
     }
+    const pct = v => (v === null || v === undefined) ? '—' : v + '%';
+    const trips = perf.round_trips_completed || 0;
     const rows = [
-      ['Trades', perf.trade_count],
-      ['Win rate', perf.win_rate_pct !== null ? perf.win_rate_pct + '%' : '—'],
-      ['Realized P&L', fmtUsd(perf.total_realized_pnl_usd)],
+      ['Exits (sells)', exits],
+      ['Round trips done', trips],
+      ['Round-trip win rate', pct(perf.round_trip_win_rate_pct)],
+      ['Gain vs holding', fmtUsd(perf.total_protection_gain_usd)],
+      ['Exit win rate', pct(perf.win_rate_pct)],
+      ['Exit P&L vs entry', fmtUsd(perf.total_realized_pnl_usd)],
       ['Max drawdown', fmtUsd(perf.max_drawdown_usd)],
     ];
     let html = '<div class="stat-row">' + rows.map(([label, val]) =>
-      `<div class="stat"><div class="stat-label">${label}</div><div class="stat-num mono">${val}</div></div>`
+      `<div class="stat"><div class="stat-label">${escapeHtml(label)}</div><div class="stat-num mono">${escapeHtml(val)}</div></div>`
     ).join('') + '</div>';
     if (perf.note) html += `<p class="note">${escapeHtml(perf.note)}</p>`;
     return html;
