@@ -370,7 +370,7 @@
 
   <section class="thesis">
     <p class="thesis-label">The problem</p>
-    <p class="thesis-body">A tokenized stock's price can look fine while the wrapper underneath it quietly becomes harder to trade — spread widens, depth thins. Custos watches that structure, not the price, and decides whether to hold, act, or wait based on it alone.</p>
+    <p class="thesis-body">A tokenized stock's price can look fine while the wrapper underneath it quietly becomes harder to trade — spread widens, depth thins. Custos watches that structure rather than betting on price direction, and decides whether to hold, act, or wait based on it alone.</p>
   </section>
 
   <p class="freshness mono" id="freshness">—</p>
@@ -398,7 +398,8 @@
       <span><span class="legend-dot" style="background:var(--healthy)"></span>healthy</span>
       <span><span class="legend-dot" style="background:var(--watch)"></span>watch</span>
       <span><span class="legend-dot" style="background:var(--redflag)"></span>red flag</span>
-      <span><span class="legend-dot" style="background:var(--text-dim)"></span>warming up — not enough history yet</span>
+      <span><span class="legend-dot" style="background:var(--text-dim)"></span>warming up — not enough history yet (score shown is partial)</span>
+      <span><span class="legend-dot" style="background:var(--text-dim)"></span>no fresh signal — the feed is unchanged since the last cycle</span>
       <span>· score: 0 (worst) to 1 (best) wrapper health</span>
     </p>
     <div id="holdings" class="holdings"></div>
@@ -406,7 +407,7 @@
 
   <section>
     <h2>Decision log</h2>
-    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Every cycle, the agent evaluates the weakest holding and the strongest cash position and logs its reasoning — whether or not it results in a trade.</p>
+    <p class="note" style="margin-top:-8px; margin-bottom:16px;">Every cycle, the agent evaluates the weakest holding and the strongest cash position and logs the outcome — whether or not it results in a trade. Most evaluations are settled by fixed safety rules; the model's own reasoning appears only when it was actually consulted.</p>
     <div id="log" class="log log-scroll"></div>
     <p class="note"><a href="https://github.com/acevod/custos/blob/main/data/event_log.jsonl" class="raw-link" target="_blank" rel="noopener noreferrer">View full decision history on GitHub →</a></p>
   </section>
@@ -425,7 +426,7 @@
   </section>
 
   <footer>
-    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price, only by wrapper health: spread, order-book depth, and movement abnormal for that token's own history.</p>
+    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price direction, only by wrapper health: spread, order-book depth, and a price move that is abnormal for that token's own history.</p>
   </footer>
 </div>
 
@@ -518,18 +519,27 @@
   function renderHoldings(scores, positions) {
     const tickers = Object.keys(scores);
     return tickers.map(ticker => {
-      const s = scores[ticker];
-      const pos = positions[ticker];
-      const pct = s.score !== null ? Math.round(s.score * 100) : 0;
+      const s = scores[ticker] || {};
+      const pos = (positions && positions[ticker]) || {};
+      const hasScore = typeof s.score === 'number';
+      // A "warming up" / "no fresh signal" score is built from fewer than all
+      // components, so show it as partial instead of as a confident reading.
+      const partial = s.label === 'warming_up' || s.label === 'no_fresh_signal';
+      const used = Array.isArray(s.components_used) ? s.components_used.length : null;
+      const pct = hasScore ? Math.round(s.score * 100) : 0;
       const color = STATUS_COLOR[s.label] || STATUS_COLOR.unknown;
-      const statusText = pos.status === 'held' ? 'held' : 'sold · cash';
+      const statusText = pos.status === 'held' ? 'held' : (pos.status === 'sold' ? 'sold · cash' : '—');
+      const scoreText = hasScore ? (partial ? '~' : '') + s.score.toFixed(2) : '—';
+      const title = partial
+        ? `partial score${used !== null ? ' (' + used + ' of 4 components)' : ''} — not enough signal to act on`
+        : '';
       return `
-        <div class="row">
+        <div class="row" ${title ? `title="${escapeHtml(title)}"` : ''}>
           <div class="row-ticker">${escapeHtml(ticker)}</div>
           <div class="row-meter">
-            <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}"></div></div>
+            <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}; ${partial ? 'opacity:.4;' : ''}"></div></div>
           </div>
-          <div class="row-score mono">${s.score !== null ? s.score.toFixed(2) : '—'}</div>
+          <div class="row-score mono">${scoreText}</div>
           <div class="row-label" style="color:${color}">${STATUS_LABEL[s.label] || 'no data'}</div>
           <div class="row-status mono">${escapeHtml(statusText)}</div>
         </div>`;
