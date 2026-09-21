@@ -134,7 +134,6 @@ custos/
 ├── health_score.py           # composite scoring logic
 ├── llm_client.py              # Qwen → Groq → OpenRouter fallback chain
 ├── requirements.txt
-├── CHANGES.md               # audit round-2 fixes and what is still open
 ├── LICENSE
 ├── .gitignore
 ├── .github/
