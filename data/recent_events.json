@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AAPL_20260921T172547494126",
+    "timestamp": "2026-09-21T17:25:47.494126+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AAPL",
+    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
+    "score": 0.6596,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_TSLA_20260921T092524135178",
     "timestamp": "2026-09-21T09:25:24.135178+00:00",
     "type": "sell_hold_evaluation",
