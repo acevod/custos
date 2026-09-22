@@ -404,14 +404,18 @@ def migrate_history(history: dict, heartbeats: list[dict] | None = None) -> dict
 
 
 def baseline_summary(history: dict) -> dict:
-    """Per-stock baseline maturity for the dashboard: how many price points
-    exist and how many calendar hours they span (None when unknown)."""
+    """Per-stock dashboard summary: baseline maturity (how many price points
+    exist and how many calendar hours they span, None when unknown) plus the
+    last few composite scores (already capped at SCORE_HISTORY_LEN in
+    history[stock]['score']) for a small trend indicator. A None entry in
+    the trend means that run's score wasn't built from enough components."""
     out = {}
     for stock in STOCKS:
         series = history.get(stock) or {}
         span = history_span_hours(series)
         out[stock] = {"points": len(series.get("price", [])),
-                      "span_hours": None if span is None else round(span, 1)}
+                      "span_hours": None if span is None else round(span, 1),
+                      "trend": list(series.get("score", []))}
     return out
 
 
