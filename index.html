@@ -81,6 +81,12 @@
     animation: pulse 2.4s ease-in-out infinite;
   }
 
+  /* Data is stale: stop implying "all good" with a cheerful green pulse. */
+  .pulse.is-stale {
+    background: var(--watch);
+    animation: none;
+  }
+
   @keyframes pulse {
     0%, 100% { opacity: 0.4; transform: scale(0.85); }
     50% { opacity: 1; transform: scale(1); }
@@ -101,7 +107,7 @@
     margin: 28px 0 0;
     padding: 18px 20px;
     border: 1px solid var(--line);
-    border-left: 2px solid var(--healthy);
+    border-left: 3px solid var(--healthy);
   }
 
   .thesis-label {
@@ -134,18 +140,18 @@
   .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 16px;
-    font-size: 12.5px;
+    gap: 6px 20px;
+    font-size: 13px;
     color: var(--text-dim);
-    margin: -8px 0 16px;
+    margin: -6px 0 16px;
   }
 
   .legend-dot {
     display: inline-block;
-    width: 7px;
-    height: 7px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    margin-right: 5px;
+    margin-right: 6px;
   }
 
   section {
@@ -194,7 +200,7 @@
   /* Holdings ledger */
   .row {
     display: grid;
-    grid-template-columns: 64px 1fr 56px 84px 96px;
+    grid-template-columns: 64px 1fr 48px 124px 92px;
     align-items: center;
     gap: 14px;
     padding: 11px 0;
@@ -228,13 +234,38 @@
 
   .row-label {
     font-size: 13px;
+    white-space: nowrap;
   }
 
   .row-status {
+    white-space: nowrap;
     font-size: 12px;
     color: var(--text-dim);
     text-align: right;
   }
+
+  .stat-sub {
+    font-size: 12.5px;
+    margin-top: 4px;
+    color: var(--text-dim);
+  }
+
+  /* Performance grid: hairlines in both directions, aligned values */
+  .perf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+  }
+
+  .perf-grid .stat {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 16px;
+  }
+
+  .perf-grid .stat-label { min-height: 2.6em; }
+  .perf-grid .stat-num { font-size: 20px; }
 
   /* Decision log */
   .log-scroll {
@@ -282,6 +313,25 @@
   }
 
   .log-ticker { color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11.5px;
+    letter-spacing: 0.05em;
+    padding: 0 7px;
+    margin-right: 6px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+  }
+
+  .log-src { color: var(--text-dim); }
+
+  .log-detail {
+    margin: 0 0 4px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+    max-width: 68ch;
+  }
 
   .log-reasoning {
     margin: 0;
@@ -339,11 +389,17 @@
 
   @media (max-width: 620px) {
     #app { padding: 32px 18px 64px; }
-    .stat-row { flex-direction: column; }
-    .stat { border-right: none; border-bottom: 1px solid var(--line); }
-    .stat:last-child { border-bottom: none; }
+    .thesis-body { font-size: 15px; }
+    .hide-sm { display: none; }
+    .stat-row.hero .stat { padding: 12px 10px; min-width: 0; }
+    .stat-sub { line-height: 1.5; margin-top: 6px; }
+    .stat-row.hero .stat-label { font-size: 12px; }
+    .stat-row.hero .stat-num { font-size: 17px; }
+    .stat-row.hero .stat-sub { font-size: 11px; }
+    .perf-grid { grid-template-columns: repeat(2, 1fr); }
     .row {
-      grid-template-columns: 52px 1fr 44px;
+      padding: 9px 0;
+      grid-template-columns: 52px 1fr 48px;
       grid-template-areas:
         "ticker meter score"
         "label label status";
@@ -379,7 +435,7 @@
     <div class="stat">
       <div class="stat-label">Portfolio value</div>
       <div class="stat-num mono" id="stat-value">—</div>
-      <div class="note" id="stale-note" style="display:none; margin-top:4px;"></div>
+      <div class="stat-sub mono" id="stat-delta"></div>
     </div>
     <div class="stat">
       <div class="stat-label">USDT held</div>
@@ -398,10 +454,10 @@
       <span><span class="legend-dot" style="background:var(--healthy)"></span>healthy</span>
       <span><span class="legend-dot" style="background:var(--watch)"></span>watch</span>
       <span><span class="legend-dot" style="background:var(--redflag)"></span>red flag</span>
-      <span><span class="legend-dot" style="background:var(--text-dim)"></span>warming up — not enough history yet (score shown is partial)</span>
-      <span><span class="legend-dot" style="background:var(--text-dim)"></span>no fresh signal — the feed is unchanged since the last cycle</span>
-      <span>· score: 0 (worst) to 1 (best) wrapper health</span>
+      <span><span class="legend-dot" style="background:var(--text-dim)"></span>warming up</span>
+      <span><span class="legend-dot" style="background:var(--text-dim)"></span>no fresh signal</span>
     </p>
+    <p class="note" style="margin:-4px 0 14px;">Score: 0 (worst) to 1 (best) wrapper health. A “warming up” bar shows progress toward a 48-hour baseline; “no fresh signal” means the feed is unchanged since the last cycle.</p>
     <div id="holdings" class="holdings"></div>
   </section>
 
@@ -426,7 +482,7 @@
   </section>
 
   <footer>
-    <p>Last updated <span id="updated" class="mono">—</span>. Every cycle, the agent evaluates the weakest holding and the strongest cash position — never by price direction, only by wrapper health: spread, order-book depth, and a price move that is abnormal for that token's own history.</p>
+    <p>Last updated <span id="updated" class="mono">—</span>. Paper trading only, no real funds. Not financial advice.</p>
   </footer>
 </div>
 
@@ -490,9 +546,20 @@
     return limit ? lines.slice(0, limit) : lines;
   }
 
+  const BASELINE_HOURS = 48;   // mirrors MIN_HISTORY_HOURS in main.py
+
   function fmtUsd(n) {
-    if (n === null || n === undefined) return '—';
-    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    const body = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < 0 ? '−' : '') + '$' + body;
+  }
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function fmtShort(iso) {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    const pad = n => String(n).padStart(2, '0');
+    return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
   }
 
   function fmtTime(iso) {
@@ -516,34 +583,55 @@
     return div.innerHTML;
   }
 
-  function renderHoldings(scores, positions) {
+  function renderHoldings(scores, positions, baseline) {
     const tickers = Object.keys(scores);
     return tickers.map(ticker => {
       const s = scores[ticker] || {};
       const pos = (positions && positions[ticker]) || {};
+      const b = (baseline && baseline[ticker]) || null;
       const hasScore = typeof s.score === 'number';
-      // A "warming up" / "no fresh signal" score is built from fewer than all
-      // components, so show it as partial instead of as a confident reading.
-      const partial = s.label === 'warming_up' || s.label === 'no_fresh_signal';
-      const used = Array.isArray(s.components_used) ? s.components_used.length : null;
-      const pct = hasScore ? Math.round(s.score * 100) : 0;
+      const warming = s.label === 'warming_up';
+      const noFresh = s.label === 'no_fresh_signal';
+      const partial = warming || noFresh;
       const color = STATUS_COLOR[s.label] || STATUS_COLOR.unknown;
-      const statusText = pos.status === 'held' ? 'held' : (pos.status === 'sold' ? 'sold · cash' : '—');
-      const scoreText = hasScore ? (partial ? '~' : '') + s.score.toFixed(2) : '—';
-      const title = partial
-        ? `partial score${used !== null ? ' (' + used + ' of 4 components)' : ''} — not enough signal to act on`
-        : '';
+      let pct = 0, scoreText = '—', labelText = STATUS_LABEL[s.label] || 'no data', fillStyle = '', title = '';
+
+      if (!partial && hasScore) {
+        // Full-strength reading: all components present.
+        pct = Math.round(s.score * 100);
+        scoreText = s.score.toFixed(2);
+      } else if (warming) {
+        // A partial score would look confident (e.g. 0.95 from spread + calendar
+        // alone), so show progress toward the baseline instead of a score.
+        if (b && typeof b.span_hours === 'number' && b.span_hours < BASELINE_HOURS) {
+          pct = Math.min(100, Math.round(Math.max(0, b.span_hours) / BASELINE_HOURS * 100));
+          labelText = 'warming up ' + Math.floor(Math.max(0, b.span_hours)) + '/' + BASELINE_HOURS + 'h';
+          fillStyle = 'opacity:.55;';
+        }
+        title = 'Not enough history to score this token reliably yet. The bar shows progress toward a ' + BASELINE_HOURS + 'h baseline.';
+      } else if (noFresh) {
+        title = "Bitget's quote is unchanged since the last cycle, so there is no fresh signal to score.";
+      }
+      // Static markup only (no data interpolated): "· cash" is dropped on narrow screens.
+      const statusHtml = pos.status === 'held' ? 'held'
+        : (pos.status === 'sold' ? 'sold<span class="hide-sm"> · cash</span>' : '—');
       return `
         <div class="row" ${title ? `title="${escapeHtml(title)}"` : ''}>
           <div class="row-ticker">${escapeHtml(ticker)}</div>
           <div class="row-meter">
-            <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}; ${partial ? 'opacity:.4;' : ''}"></div></div>
+            <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}; ${fillStyle}"></div></div>
           </div>
-          <div class="row-score mono">${scoreText}</div>
-          <div class="row-label" style="color:${color}">${STATUS_LABEL[s.label] || 'no data'}</div>
-          <div class="row-status mono">${escapeHtml(statusText)}</div>
+          <div class="row-score mono">${escapeHtml(scoreText)}</div>
+          <div class="row-label" style="color:${color}">${escapeHtml(labelText)}</div>
+          <div class="row-status mono">${statusHtml}</div>
         </div>`;
     }).join('');
+  }
+
+  function parseAction(action) {
+    // "HOLD (awaiting confirmation - ...)" -> ["HOLD", "awaiting confirmation - ..."]
+    const m = /^([A-Za-z_ ]+?)\s*\((.*)\)\s*$/.exec(String(action || ''));
+    return m ? [m[1].trim(), m[2].trim()] : [String(action || '').trim(), ''];
   }
 
   function renderLog(events) {
@@ -551,22 +639,31 @@
       return '<p class="empty">No decisions logged yet — the agent evaluates every cycle once enough history builds up to score a token.</p>';
     }
     return events.map(e => { try {
-      let decision, color;
-      if (e.type === 'sell') { decision = 'SOLD'; color = 'var(--redflag)'; }
-      else if (e.type === 'buy_back') { decision = 'BOUGHT BACK'; color = 'var(--healthy)'; }
-      else { decision = (e.action_taken || '').toUpperCase(); color = 'var(--text-dim)'; }
+      let badge, color, detail = '', source;
+      if (e.type === 'sell') {
+        badge = 'SOLD'; color = 'var(--redflag)'; source = 'model';
+        detail = 'Proceeds ' + fmtUsd(e.proceeds_usd) + ' · P&L vs entry ' + fmtUsd(e.realized_pnl_usd) + ' · score ' + e.score_at_decision;
+      } else if (e.type === 'buy_back') {
+        badge = 'BOUGHT BACK'; color = 'var(--healthy)'; source = 'model';
+        detail = 'Cost ' + fmtUsd(e.cost_usd) + ' · score ' + e.score_at_decision;
+      } else {
+        const parsed = parseAction(e.action_taken);
+        badge = parsed[0].toUpperCase(); detail = parsed[1];
+        detail = detail ? detail.charAt(0).toUpperCase() + detail.slice(1) : '';
+        color = /SKIPPED|FROZEN/.test(badge) ? 'var(--watch)' : 'var(--text-dim)';
+        source = e.type === 'evaluation_skipped' ? 'data' : (e.llm_provider_used ? 'model' : 'rule');
+      }
       // Reasoning is capped server-side; clip again defensively so an old
       // long entry (e.g. raw chain-of-thought) can never flood the page.
       let rawReason = String(e.llm_reasoning || '').replace(/\n+/g, ' ').trim();
       if (rawReason.length > 400) rawReason = rawReason.slice(0, 399) + '…';
-      const reasoning = escapeHtml(rawReason);
-      const reasoningHtml = reasoning
-        ? `<span class="log-why">WHY</span>${reasoning}`
-        : '';
+      const ageMs = Date.now() - new Date(e.timestamp).getTime();
+      const age = isNaN(ageMs) ? '' : ' · ' + fmtAge(Math.max(0, ageMs)) + ' ago';
       return `
         <div class="log-entry">
-          <div class="log-meta mono">${fmtTime(e.timestamp)} · <span class="log-ticker">${escapeHtml(e.instrument)}</span> · <span style="color:${color}">${escapeHtml(decision)}</span></div>
-          <p class="log-reasoning">${reasoningHtml}</p>
+          <div class="log-meta mono"><span class="badge" style="color:${color}">${escapeHtml(badge)}</span><span class="log-ticker">${escapeHtml(e.instrument)}</span> · ${fmtShort(e.timestamp)}${age} · <span class="log-src" title="${source === 'model' ? 'The language model was consulted' : (source === 'rule' ? 'Settled by a fixed safety rule, no model call' : 'Market data was unavailable')}">${source}</span></div>
+          ${detail ? `<p class="log-detail">${escapeHtml(detail)}</p>` : ''}
+          ${rawReason ? `<p class="log-reasoning"><span class="log-why">WHY</span>${escapeHtml(rawReason)}</p>` : ''}
         </div>`;
     } catch (err) { return ''; } }).join('');
   }
@@ -574,7 +671,7 @@
   function renderPerformance(perf) {
     const exits = perf ? (perf.exit_count ?? perf.trade_count ?? 0) : 0;
     if (!perf || exits === 0) {
-      return '<p class="empty">No exits yet — no holding has been sold. Sells only happen once a token has a mature baseline, a low score confirmed over consecutive runs, and the live-trading switch is on.</p>';
+      return '<p class="empty">No exits yet — no holding has been sold. A sell needs a mature baseline (12+ points over 48h+) and a low score confirmed on consecutive runs.</p>';
     }
     const pct = v => (v === null || v === undefined) ? '—' : v + '%';
     const trips = perf.round_trips_completed || 0;
@@ -587,11 +684,9 @@
       ['Exit P&L vs entry', fmtUsd(perf.total_realized_pnl_usd)],
       ['Max drawdown', fmtUsd(perf.max_drawdown_usd)],
     ];
-    let html = '<div class="stat-row">' + rows.map(([label, val]) =>
+    return '<div class="perf-grid">' + rows.map(([label, val]) =>
       `<div class="stat"><div class="stat-label">${escapeHtml(label)}</div><div class="stat-num mono">${escapeHtml(val)}</div></div>`
     ).join('') + '</div>';
-    if (perf.note) html += `<p class="note">${escapeHtml(perf.note)}</p>`;
-    return html;
   }
 
   function renderRunRecords(records) {
@@ -626,6 +721,13 @@
   async function renderStats(latest) {
     const ps = latest.portfolio_summary;
     document.getElementById('stat-value').textContent = fmtUsd(ps.total_portfolio_value_market_usd);
+    const cost = ps.total_portfolio_value_cost_basis_usd, mkt = ps.total_portfolio_value_market_usd;
+    const delta = document.getElementById('stat-delta');
+    if (typeof cost === 'number' && typeof mkt === 'number' && cost > 0) {
+      const diff = mkt - cost, sign = diff >= 0 ? '+' : '−';
+      delta.innerHTML = escapeHtml(sign + fmtUsd(Math.abs(diff)) + ' (' + sign + Math.abs(diff / cost * 100).toFixed(2) + '%)') + '<span class="hide-sm"> vs cost</span>';
+      delta.style.color = diff >= 0 ? 'var(--healthy)' : 'var(--redflag)';
+    }
     // These are two different problems and get two different
     // messages - conflating them under one generic "stale" warning
     // previously blamed "prices unavailable" even when the real
@@ -635,32 +737,30 @@
     const fetchFailed = ps.valuation_status === 'stale';
     const ageMs = Date.now() - new Date(latest.timestamp).getTime();
     const tooOld = ageMs > STALE_AFTER_MS;
-    // Always-visible freshness indicator, separate from the
-    // conditional stale-note below - a fresh dashboard should say so
-    // plainly, not just stay silent until something's wrong.
+    // One freshness signal, not three: the header's pulse dot (color-coded)
+    // plus a single line of text that folds in the reason when something's
+    // actually wrong, instead of a separate dot + a separate stale banner
+    // repeating the same "stale" word.
+    const stale = fetchFailed || tooOld;
+    const pulseDot = document.querySelector('.pulse');
+    if (pulseDot) pulseDot.classList.toggle('is-stale', stale);
     const freshness = document.getElementById('freshness');
-    const freshDotColor = tooOld ? 'var(--watch)' : 'var(--healthy)';
-    const freshLabel = tooOld ? 'updated' : 'live · updated';
-    freshness.innerHTML = `<span class="legend-dot" style="background:${freshDotColor}"></span>${freshLabel} ${fmtAge(ageMs)} ago`;
-    const staleNote = document.getElementById('stale-note');
+    let freshText = (stale ? 'updated' : 'live · updated') + ' ' + fmtAge(ageMs) + ' ago';
     if (fetchFailed && tooOld) {
-      staleNote.textContent = '⚠ stale — some prices failed to fetch last cycle, and no update since ' + fmtAge(ageMs);
-      staleNote.style.display = 'block';
+      freshText += ' — some prices failed to fetch last cycle, still no update since';
     } else if (fetchFailed) {
-      staleNote.textContent = '⚠ stale — some live prices were unavailable during the last run';
-      staleNote.style.display = 'block';
+      freshText += ' — some live prices were unavailable during the last run';
     } else if (tooOld) {
-      staleNote.textContent = '⚠ no update in ' + fmtAge(ageMs) + ' — check whether the scheduled workflow is still running';
-      staleNote.style.display = 'block';
-    } else {
-      staleNote.style.display = 'none';
+      freshText += ' — check whether the scheduled workflow is still running';
     }
+    freshness.textContent = freshText;
+    freshness.style.color = stale ? 'var(--watch)' : 'var(--text-dim)';
     document.getElementById('stat-cash').textContent = fmtUsd(ps.total_usdt_cash);
     document.getElementById('stat-held').textContent = ps.held_stocks.length + ' / 10';
   }
 
   async function renderHoldingsSection(latest) {
-    document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions);
+    document.getElementById('holdings').innerHTML = renderHoldings(latest.scores, latest.positions, latest.baseline);
   }
 
   async function renderLogSection() {
