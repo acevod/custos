@@ -664,6 +664,18 @@ class TestRunFixes(unittest.TestCase):
         self.assertEqual(beat["labels"]["NVDA"], "no_fresh_signal")
         self.assertEqual(len(main.load_json(main.HISTORY_PATH, None)["NVDA"]["price"]), len(hist["NVDA"]["price"]))
 
+    def test_latest_json_exposes_baseline_progress_for_the_dashboard(self):
+        self._write(self._history([0.9, 0.9]), self._positions())
+        self._run(self._healthy(), self.SELL_JSON)
+        baseline = json.load(open(main.LATEST_PATH))["baseline"]
+        self.assertEqual(set(baseline), set(main.STOCKS))
+        n = len(main.load_json(main.HISTORY_PATH, None)["NVDA"]["price"])
+        self.assertEqual(baseline["NVDA"]["points"], n)
+        self.assertGreater(baseline["NVDA"]["span_hours"], main.MIN_HISTORY_HOURS)
+        self.assertEqual(baseline["NVDA"]["trend"], main.load_json(main.HISTORY_PATH, None)["NVDA"]["score"])
+        self.assertLessEqual(len(baseline["NVDA"]["trend"]), main.SCORE_HISTORY_LEN)
+        self.assertEqual(baseline["TSLA"], {"points": 0, "span_hours": None, "trend": [None]})   # no data yet
+
     def test_heartbeat_records_fetch_status_and_mode(self):
         self._write(self._history([0.9, 0.9]), self._positions())
         self._run(self._healthy(), self.SELL_JSON)
