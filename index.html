@@ -108,6 +108,7 @@
     padding: 18px 20px;
     border: 1px solid var(--line);
     border-left: 3px solid var(--healthy);
+    border-radius: 6px;
   }
 
   .thesis-label {
@@ -174,6 +175,8 @@
     display: flex;
     gap: 0;
     border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
   }
 
   .stat {
@@ -230,6 +233,24 @@
   .row-score {
     text-align: right;
     color: var(--text-dim);
+  }
+
+  .row-meter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .meter { flex: 1 1 auto; }
+
+  /* Last few composite scores for this token, oldest to newest. Purely a
+     trend cue (steady vs. jumpy) - the bar + number are still the reading
+     that matters. Hidden when there isn't enough recent history to plot. */
+  .spark {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 16px;
+    opacity: 0.8;
   }
 
   .row-label {
@@ -583,6 +604,37 @@
     return div.innerHTML;
   }
 
+  // Last few composite scores as a tiny inline sparkline (SVG polyline,
+  // fixed 0-1 domain so steepness is comparable across tokens). `trend` is
+  // chronological oldest -> newest with `null` for runs where this token's
+  // score wasn't computed; those breaks are drawn as gaps, never bridged.
+  function sparkline(trend, color) {
+    if (!Array.isArray(trend) || trend.length < 2) return '';
+    const w = 40, h = 16, pad = 2, n = trend.length;
+    const x = i => (n === 1 ? w / 2 : pad + (i / (n - 1)) * (w - 2 * pad));
+    const y = v => h - pad - Math.max(0, Math.min(1, v)) * (h - 2 * pad);
+    const runs = [];
+    let current = [];
+    trend.forEach((v, i) => {
+      if (typeof v === 'number') {
+        current.push(`${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+      } else if (current.length) {
+        runs.push(current);
+        current = [];
+      }
+    });
+    if (current.length) runs.push(current);
+    if (runs.every(r => r.length < 2) && runs.flat().length < 1) return '';
+    const lines = runs.filter(r => r.length >= 2)
+      .map(r => `<polyline points="${r.join(' ')}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`)
+      .join('');
+    if (!lines) return '';
+    let lastIdx = -1;
+    trend.forEach((v, i) => { if (typeof v === 'number') lastIdx = i; });
+    const dot = lastIdx >= 0 ? `<circle cx="${x(lastIdx).toFixed(1)}" cy="${y(trend[lastIdx]).toFixed(1)}" r="1.6" fill="${color}"/>` : '';
+    return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true">${lines}${dot}</svg>`;
+  }
+
   function renderHoldings(scores, positions, baseline) {
     const tickers = Object.keys(scores);
     return tickers.map(ticker => {
@@ -615,11 +667,13 @@
       // Static markup only (no data interpolated): "· cash" is dropped on narrow screens.
       const statusHtml = pos.status === 'held' ? 'held'
         : (pos.status === 'sold' ? 'sold<span class="hide-sm"> · cash</span>' : '—');
+      const spark = sparkline(b && b.trend, color);
       return `
         <div class="row" ${title ? `title="${escapeHtml(title)}"` : ''}>
           <div class="row-ticker">${escapeHtml(ticker)}</div>
           <div class="row-meter">
             <div class="meter"><div class="meter-fill" style="width:${pct}%; background:${color}; ${fillStyle}"></div></div>
+            ${spark}
           </div>
           <div class="row-score mono">${escapeHtml(scoreText)}</div>
           <div class="row-label" style="color:${color}">${escapeHtml(labelText)}</div>
