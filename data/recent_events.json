@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AMZN_20260922T155716294329",
+    "timestamp": "2026-09-22T15:57:16.294329+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AMZN",
+    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
+    "score": 0.6588,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20260922T085353014311",
     "timestamp": "2026-09-22T08:53:53.014311+00:00",
     "type": "sell_hold_evaluation",
