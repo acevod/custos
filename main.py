@@ -403,6 +403,18 @@ def migrate_history(history: dict, heartbeats: list[dict] | None = None) -> dict
     return history
 
 
+def baseline_summary(history: dict) -> dict:
+    """Per-stock baseline maturity for the dashboard: how many price points
+    exist and how many calendar hours they span (None when unknown)."""
+    out = {}
+    for stock in STOCKS:
+        series = history.get(stock) or {}
+        span = history_span_hours(series)
+        out[stock] = {"points": len(series.get("price", [])),
+                      "span_hours": None if span is None else round(span, 1)}
+    return out
+
+
 def is_unchanged_snapshot(series: dict, entry: dict) -> bool:
     """True when the ticker's price, volume and top-of-book size are all
     identical to the last stored reading: a quiet OR frozen feed (they
@@ -1163,7 +1175,7 @@ def run():
     save_json(PERFORMANCE_SUMMARY_PATH, performance_summary)
     save_json(LATEST_PATH, {
         "timestamp": now.isoformat(), "schema_version": SCHEMA_VERSION,
-        "scores": scores, "positions": positions,
+        "scores": scores, "positions": positions, "baseline": baseline_summary(history),
         "portfolio_summary": compute_portfolio_summary(positions, by_stock),
         "performance_summary": performance_summary,
         "events_this_run": events_this_run,
