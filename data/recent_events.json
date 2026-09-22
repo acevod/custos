@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_GOOGL_20260922T022549599242",
+    "timestamp": "2026-09-22T02:25:49.599242+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "GOOGL",
+    "action_taken": "HOLD (warming up - history still warming up - 7/12 baseline points)",
+    "score": 0.7422,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_KO_20260921T225537051112",
     "timestamp": "2026-09-21T22:55:37.051112+00:00",
     "type": "sell_hold_evaluation",
