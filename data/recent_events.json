@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20260923T191937317824",
+    "timestamp": "2026-09-23T19:19:37.317824+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (blocked by hard rule - score 0.8568 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.8568,
+    "score_label": "healthy",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_MCD_20260923T154648134997",
     "timestamp": "2026-09-23T15:46:48.134997+00:00",
     "type": "sell_hold_evaluation",
