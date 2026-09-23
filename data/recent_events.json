@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20260923T022602723091",
+    "timestamp": "2026-09-23T02:26:02.723091+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (warming up - history still warming up - 11/12 baseline points)",
+    "score": 0.6533,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_NVDA_20260922T223144161721",
     "timestamp": "2026-09-22T22:31:44.161721+00:00",
     "type": "sell_hold_evaluation",
