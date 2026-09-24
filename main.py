@@ -117,7 +117,7 @@ def load_json(path: str, default, *, required: bool = False):
 
 def save_json(path: str, data):
     """Atomic write: temp file + os.replace, so a crash mid-write can
-    never leave a half-written JSON file behind (H1 fix)."""
+    never leave a half-written JSON file behind."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp_path = f"{path}.tmp"
     with open(tmp_path, "w") as f:
@@ -149,7 +149,7 @@ def read_jsonl(path: str) -> list[dict]:
     return entries
 
 
-# ── Startup reconciliation (H1 safety net) ─────────────────────
+# ── Startup reconciliation (ledger vs. positions.json) ─────────
 
 def count_ledger_entries(transaction_path: str = TRANSACTION_LOG_PATH) -> tuple[dict, dict]:
     """Counts sells and buy-backs per stock from transaction_log.jsonl,
@@ -799,7 +799,8 @@ def compute_portfolio_summary(positions: dict, by_stock: dict) -> dict:
             held_cost_basis += p["cost_basis_usd"]
             current_price = by_stock.get(stock, {}).get("price")
             if current_price and p.get("quantity"):
-                # L4 fix: net of the exit fee that selling would incur
+                # Net of the exit fee that selling would incur, so this
+                # isn't a rosier number than the position could actually realize.
                 held_market_value += p["quantity"] * current_price * (1 - TRADING_FEE_PCT)
             else:
                 held_market_value += p["cost_basis_usd"]
