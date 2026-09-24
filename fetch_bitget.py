@@ -3,7 +3,7 @@ Data puller for Bitget Reality Spot Stock API - 10 rTokens covering a
 mix of volatility profiles. Public endpoint, no API key required.
 https://www.bitget.com/docs/catalog/market/market-data#get-tickers
 
-M3/M6 fixes vs the original version:
+Audit fix (L-8) vs the original version:
   - Reuses a single requests.Session across all 10 symbols instead of
     opening a fresh TLS connection per request.
   - Retries each request with exponential backoff on 429 / 5xx /
@@ -24,7 +24,7 @@ MAX_RETRIES = 3          # total attempts per symbol
 BACKOFF_BASE_SECONDS = 2 # 2s, 4s between retries
 MAX_MARKET_DATA_AGE_SECONDS = 15 * 60
 
-# M6 fix: one shared session (connection pooling) for all symbols.
+# L-8 fix: one shared session (connection pooling) for all symbols.
 SESSION = requests.Session()
 
 SYMBOLS = {
