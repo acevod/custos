@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_QQQ_20260924T160818032075",
+    "timestamp": "2026-09-24T16:08:18.032075+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "QQQ",
+    "action_taken": "HOLD (blocked by hard rule - score 0.827 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.827,
+    "score_label": "healthy",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20260924T085125242957",
     "timestamp": "2026-09-24T08:51:25.242957+00:00",
     "type": "sell_hold_evaluation",
