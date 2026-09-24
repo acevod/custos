@@ -508,7 +508,7 @@
 </div>
 
 <script>
-  // Fix L3/M5: every value interpolated into HTML is escaped, JSONL
+  // Fix L-4: every value interpolated into HTML is escaped, JSONL
   // parsing skips corrupt lines instead of killing the whole
   // dashboard, and each dashboard section fails independently so one
   // broken fetch can't blank sections that loaded fine.
@@ -769,7 +769,7 @@
       </div>`;
   }
 
-  // M5 fix: each section renders independently - a failure in one
+  // L-4 fix: each section renders independently - a failure in one
   // section leaves the other sections intact instead of falling into
   // the global "hasn't started" state.
   async function renderStats(latest) {
