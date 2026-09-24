@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_GOOGL_20260924T224949098625",
+    "timestamp": "2026-09-24T22:49:49.098625+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "GOOGL",
+    "action_taken": "HOLD (blocked by hard rule - score 0.6897 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.6897,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_QQQ_20260924T160818032075",
     "timestamp": "2026-09-24T16:08:18.032075+00:00",
     "type": "sell_hold_evaluation",
@@ -222,18 +234,6 @@
     "instrument": "AAPL",
     "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
     "score": 0.6373,
-    "score_label": "warming_up",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_AMZN_20260920T133248118102",
-    "timestamp": "2026-09-20T13:32:48.118102+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "AMZN",
-    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
-    "score": 0.6722,
     "score_label": "warming_up",
     "llm_reasoning": null,
     "llm_provider_used": null,

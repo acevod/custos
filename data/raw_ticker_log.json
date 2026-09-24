@@ -2298,5 +2298,120 @@
         "platformTurnover24h": "17.496"
       }
     }
+  },
+  {
+    "timestamp": "2026-09-24T22:49:49.098625+00:00",
+    "tickers": {
+      "NVDA": {
+        "ts": "1790290188750",
+        "lastPrice": "224.06",
+        "ask1Price": "224.06",
+        "bid1Price": "223.96",
+        "bid1Size": "225",
+        "ask1Size": "125",
+        "volume24h": "51568741.0613",
+        "turnover24h": "11558395914.0605",
+        "platformTurnover24h": "545913.2902"
+      },
+      "TSLA": {
+        "ts": "1790290188416",
+        "lastPrice": "377.75",
+        "ask1Price": "377.9",
+        "bid1Price": "377.7",
+        "bid1Size": "3",
+        "ask1Size": "88",
+        "volume24h": "15836777.1387",
+        "turnover24h": "6010998040.0887",
+        "platformTurnover24h": "289643.4913"
+      },
+      "AAPL": {
+        "ts": "1790290188417",
+        "lastPrice": "335.99",
+        "ask1Price": "336",
+        "bid1Price": "335.91",
+        "bid1Size": "1",
+        "ask1Size": "125",
+        "volume24h": "17197511.6201",
+        "turnover24h": "5792935901.7868",
+        "platformTurnover24h": "27215.917"
+      },
+      "AMZN": {
+        "ts": "1790290188752",
+        "lastPrice": "249.3",
+        "ask1Price": "249.3",
+        "bid1Price": "249.12",
+        "bid1Size": "85",
+        "ask1Size": "15",
+        "volume24h": "21466391.1236",
+        "turnover24h": "5348175464.2095",
+        "platformTurnover24h": "42855.1585"
+      },
+      "GOOGL": {
+        "ts": "1790290188417",
+        "lastPrice": "341.68",
+        "ask1Price": "341.71",
+        "bid1Price": "341.45",
+        "bid1Size": "2",
+        "ask1Size": "14",
+        "volume24h": "15149572.5471",
+        "turnover24h": "5181016631.935",
+        "platformTurnover24h": "398734.5264"
+      },
+      "SPY": {
+        "ts": "1790290188752",
+        "lastPrice": "766.46",
+        "ask1Price": "766.49",
+        "bid1Price": "766.43",
+        "bid1Size": "126",
+        "ask1Size": "126",
+        "volume24h": "34147696.5462",
+        "turnover24h": "26197502727.674",
+        "platformTurnover24h": "126327.8327"
+      },
+      "QQQ": {
+        "ts": "1790290188751",
+        "lastPrice": "740.37",
+        "ask1Price": "740.38",
+        "bid1Price": "740.29",
+        "bid1Size": "600",
+        "ask1Size": "600",
+        "volume24h": "18799776.354",
+        "turnover24h": "13919115298.1449",
+        "platformTurnover24h": "52997.3315"
+      },
+      "KO": {
+        "ts": "1790290189656",
+        "lastPrice": "88.2",
+        "ask1Price": "88.25",
+        "bid1Price": "88.14",
+        "bid1Size": "1",
+        "ask1Size": "5",
+        "volume24h": "8671865.7014",
+        "turnover24h": "766154924.7629",
+        "platformTurnover24h": "2951.7899"
+      },
+      "MCD": {
+        "ts": "1790290189931",
+        "lastPrice": "237.96",
+        "ask1Price": "238.18",
+        "bid1Price": "237.93",
+        "bid1Size": "230",
+        "ask1Size": "200",
+        "volume24h": "4185769.745",
+        "turnover24h": "999332529.4807",
+        "platformTurnover24h": "62824.1827"
+      },
+      "PYPL": {
+        "ts": "1790290189931",
+        "lastPrice": "52.45",
+        "ask1Price": "52.49",
+        "bid1Price": "52.45",
+        "bid1Size": "24",
+        "ask1Size": "8556",
+        "volume24h": "5071857.8078",
+        "turnover24h": "265548210.7384",
+        "platformTurnover24h": "17.496"
+      }
+    }
   }
 ]
