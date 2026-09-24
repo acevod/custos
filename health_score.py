@@ -30,17 +30,22 @@ Components (all normalized 0.0 unhealthy - 1.0 healthy):
                                 sharp move down)
   4. Weekend/after-hours     (20%) - a fixed calendar-based penalty
                                 (not derived from this token's own
-                                data) reflecting that Bitget supplies
-                                liquidity internally outside NASDAQ/
-                                NYSE hours, which changes (not
-                                necessarily worsens) the mechanism.
-                                Uses America/New_York (DST-aware) and
-                                a small holiday table (see
+                                data). Two different, verified regimes:
+                                weekday pre/after-market hours (0.8)
+                                still largely mirror the underlying
+                                stock's own (lower) activity in that
+                                window, per Bitget's hourly candles -
+                                same liquidity source, just thinner.
+                                The weekend window, Fri 20:00 ET ->
+                                Sun 20:00 ET (0.6), is where Bitget's
+                                rToken market genuinely stops following
+                                the stock and runs on its own internal
+                                liquidity instead - a different
+                                mechanism, confirmed against 5 weekends
+                                of candles and Labor Day 2026. Uses
+                                America/New_York (DST-aware) and a
+                                small holiday table (see
                                 US_MARKET_HOLIDAYS - extend it yearly).
-                                The "weekend" window is Fri 20:00 ET ->
-                                Sun 20:00 ET (when Bitget's rToken
-                                markets stop following the US stock
-                                market's 24/5 activity).
 
 Volume is deliberately NOT a component: Bitget's `volume24h` is a
 counter that resets at 16:00 UTC and, on weekdays, mirrors the volume of
@@ -115,9 +120,12 @@ def _linear(ratio: float, zero_at: float, full_at: float) -> float:
 
 def _regime(ts: datetime) -> str:
     """'open' (regular US market hours), 'night' (weekday, market closed)
-    or 'weekend' (weekend / market holiday). Liquidity is supplied by a
-    different mechanism in each, so readings are only comparable within
-    the same regime."""
+    or 'weekend' (weekend / market holiday). Liquidity levels differ
+    enough between these that a reading is only comparable within the
+    same regime - 'night' still runs on the same mechanism as 'open'
+    (thinner activity, not a different source); only 'weekend' is a
+    genuinely different, Bitget-internal mechanism (see
+    _is_native_window)."""
     calendar_score = score_weekend_afterhours(ts)
     if calendar_score == 1.0:
         return "open"
