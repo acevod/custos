@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20260925T091212621923",
+    "timestamp": "2026-09-25T09:12:12.621923+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (blocked by hard rule - score 0.5212 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.5212,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_KO_20260925T023115940544",
     "timestamp": "2026-09-25T02:31:15.940544+00:00",
     "type": "sell_hold_evaluation",
@@ -222,18 +234,6 @@
     "instrument": "NVDA",
     "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
     "score": 0.6097,
-    "score_label": "warming_up",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_AAPL_20260920T220229772853",
-    "timestamp": "2026-09-20T22:02:29.772853+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "AAPL",
-    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
-    "score": 0.6373,
     "score_label": "warming_up",
     "llm_reasoning": null,
     "llm_provider_used": null,
