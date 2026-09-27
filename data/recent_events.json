@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20260927T093935329455",
+    "timestamp": "2026-09-27T09:39:35.329455+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
+    "score": 0.7314,
+    "score_label": "no_fresh_signal",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_TSLA_20260927T023209282542",
     "timestamp": "2026-09-27T02:32:09.282542+00:00",
     "type": "sell_hold_evaluation",
@@ -222,18 +234,6 @@
     "instrument": "KO",
     "action_taken": "HOLD (warming up - history still warming up - 11/12 baseline points)",
     "score": 0.6533,
-    "score_label": "watch",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_NVDA_20260922T223144161721",
-    "timestamp": "2026-09-22T22:31:44.161721+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "NVDA",
-    "action_taken": "HOLD (warming up - history still warming up - 11/12 baseline points)",
-    "score": 0.7467,
     "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
