@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20260928T023544267437",
+    "timestamp": "2026-09-28T02:35:44.267437+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
+    "score": 0.7956,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_GOOGL_20260927T224210270884",
     "timestamp": "2026-09-27T22:42:10.270884+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "HOLD (blocked by hard rule - score 0.8568 >= SELL_CEILING 0.5; LLM not consulted)",
     "score": 0.8568,
     "score_label": "healthy",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_MCD_20260923T154648134997",
-    "timestamp": "2026-09-23T15:46:48.134997+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "MCD",
-    "action_taken": "HOLD (blocked by hard rule - score 0.7335 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.7335,
-    "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
