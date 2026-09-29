@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AAPL_20260929T101426750028",
+    "timestamp": "2026-09-29T10:14:26.750028+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AAPL",
+    "action_taken": "HOLD (blocked by hard rule - score 0.6811 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.6811,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20260929T000331780400",
     "timestamp": "2026-09-29T00:03:31.780400+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "HOLD (blocked by hard rule - score 0.827 >= SELL_CEILING 0.5; LLM not consulted)",
     "score": 0.827,
     "score_label": "healthy",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_PYPL_20260924T085125242957",
-    "timestamp": "2026-09-24T08:51:25.242957+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "PYPL",
-    "action_taken": "HOLD (blocked by hard rule - score 0.5112 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.5112,
-    "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
