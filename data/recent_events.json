@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_MCD_20260930T231933442106",
+    "timestamp": "2026-09-30T23:19:33.442106+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "MCD",
+    "action_taken": "HOLD (blocked by hard rule - score 0.6343 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.6343,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_AAPL_20260930T171422044472",
     "timestamp": "2026-09-30T17:14:22.044472+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
     "score": 0.7907,
     "score_label": "warming_up",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_KO_20260925T225720562380",
-    "timestamp": "2026-09-25T22:57:20.562380+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "KO",
-    "action_taken": "HOLD (blocked by hard rule - score 0.8227 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.8227,
-    "score_label": "healthy",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
