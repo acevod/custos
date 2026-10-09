@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_MCD_20261009T234209832434",
+    "timestamp": "2026-10-09T23:42:09.832434+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "MCD",
+    "action_taken": "HOLD (blocked by hard rule - score 0.6569 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.6569,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_AMZN_20261009T174342361327",
     "timestamp": "2026-10-09T17:43:42.361327+00:00",
     "type": "sell_hold_evaluation",
@@ -218,18 +230,6 @@
   {
     "event_id": "eval_PYPL_20261004T101804195420",
     "timestamp": "2026-10-04T10:18:04.195420+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "PYPL",
-    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
-    "score": 0.466,
-    "score_label": "no_fresh_signal",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_PYPL_20261004T032459458838",
-    "timestamp": "2026-10-04T03:24:59.458838+00:00",
     "type": "sell_hold_evaluation",
     "instrument": "PYPL",
     "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
