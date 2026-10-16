@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_TSLA_20261016T083603268576",
+    "timestamp": "2026-10-16T08:36:03.268576+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "TSLA",
+    "action_taken": "HOLD (blocked by hard rule - score 0.6822 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.6822,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_TSLA_20261016T021555354606",
     "timestamp": "2026-10-16T02:15:55.354606+00:00",
     "type": "sell_hold_evaluation",
@@ -222,18 +234,6 @@
     "instrument": "QQQ",
     "action_taken": "HOLD (blocked by hard rule - score 0.5869 >= SELL_CEILING 0.5; LLM not consulted)",
     "score": 0.5869,
-    "score_label": "watch",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_QQQ_20261011T025526327101",
-    "timestamp": "2026-10-11T02:55:26.327101+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "QQQ",
-    "action_taken": "HOLD (blocked by hard rule - score 0.6282 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.6282,
     "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
