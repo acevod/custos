@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-16T15:46:26.228209+00:00",
+  "timestamp": "2026-10-16T19:08:03.232148+00:00",
   "schema_version": 2,
   "scores": {
     "NVDA": {
-      "score": 0.9815,
+      "score": 0.7472,
       "components_used": [
         "spread",
         "depth",
@@ -11,33 +11,33 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9862,
-        "depth": 1.0,
-        "abnormal_movement": 0.9426,
-        "weekend": 1.0
-      },
-      "timestamp": "2026-10-16T15:46:28.259537+00:00",
-      "label": "healthy"
-    },
-    "TSLA": {
-      "score": 0.7417,
-      "components_used": [
-        "spread",
-        "depth",
-        "abnormal_movement",
-        "weekend"
-      ],
-      "components_raw": {
-        "spread": 0.9722,
+        "spread": 0.9906,
         "depth": 1.0,
         "abnormal_movement": 0.0,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.259718+00:00",
+      "timestamp": "2026-10-16T19:08:05.282765+00:00",
+      "label": "watch"
+    },
+    "TSLA": {
+      "score": 0.6575,
+      "components_used": [
+        "spread",
+        "depth",
+        "abnormal_movement",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9886,
+        "depth": 0.6436,
+        "abnormal_movement": 0.0,
+        "weekend": 1.0
+      },
+      "timestamp": "2026-10-16T19:08:05.283186+00:00",
       "label": "watch"
     },
     "AAPL": {
-      "score": 0.8468,
+      "score": 0.7478,
       "components_used": [
         "spread",
         "depth",
@@ -45,16 +45,16 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9913,
+        "spread": 0.9912,
         "depth": 1.0,
-        "abnormal_movement": 0.3976,
+        "abnormal_movement": 0.0018,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.259876+00:00",
-      "label": "healthy"
+      "timestamp": "2026-10-16T19:08:05.283533+00:00",
+      "label": "watch"
     },
     "AMZN": {
-      "score": 0.9397,
+      "score": 0.7476,
       "components_used": [
         "spread",
         "depth",
@@ -62,67 +62,67 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9803,
-        "depth": 1.0,
-        "abnormal_movement": 0.7823,
-        "weekend": 1.0
-      },
-      "timestamp": "2026-10-16T15:46:28.260040+00:00",
-      "label": "healthy"
-    },
-    "GOOGL": {
-      "score": 0.8142,
-      "components_used": [
-        "spread",
-        "depth",
-        "abnormal_movement",
-        "weekend"
-      ],
-      "components_raw": {
-        "spread": 0.9797,
-        "depth": 1.0,
-        "abnormal_movement": 0.2811,
-        "weekend": 1.0
-      },
-      "timestamp": "2026-10-16T15:46:28.260198+00:00",
-      "label": "healthy"
-    },
-    "SPY": {
-      "score": 0.8405,
-      "components_used": [
-        "spread",
-        "depth",
-        "abnormal_movement",
-        "weekend"
-      ],
-      "components_raw": {
-        "spread": 0.9948,
-        "depth": 1.0,
-        "abnormal_movement": 0.3684,
-        "weekend": 1.0
-      },
-      "timestamp": "2026-10-16T15:46:28.260368+00:00",
-      "label": "healthy"
-    },
-    "QQQ": {
-      "score": 0.7487,
-      "components_used": [
-        "spread",
-        "depth",
-        "abnormal_movement",
-        "weekend"
-      ],
-      "components_raw": {
-        "spread": 0.9958,
+        "spread": 0.992,
         "depth": 1.0,
         "abnormal_movement": 0.0,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.260549+00:00",
+      "timestamp": "2026-10-16T19:08:05.283887+00:00",
+      "label": "watch"
+    },
+    "GOOGL": {
+      "score": 0.7456,
+      "components_used": [
+        "spread",
+        "depth",
+        "abnormal_movement",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9853,
+        "depth": 1.0,
+        "abnormal_movement": 0.0,
+        "weekend": 1.0
+      },
+      "timestamp": "2026-10-16T19:08:05.284256+00:00",
+      "label": "watch"
+    },
+    "SPY": {
+      "score": 0.7492,
+      "components_used": [
+        "spread",
+        "depth",
+        "abnormal_movement",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9974,
+        "depth": 1.0,
+        "abnormal_movement": 0.0,
+        "weekend": 1.0
+      },
+      "timestamp": "2026-10-16T19:08:05.284549+00:00",
+      "label": "watch"
+    },
+    "QQQ": {
+      "score": 0.7492,
+      "components_used": [
+        "spread",
+        "depth",
+        "abnormal_movement",
+        "weekend"
+      ],
+      "components_raw": {
+        "spread": 0.9972,
+        "depth": 1.0,
+        "abnormal_movement": 0.0,
+        "weekend": 1.0
+      },
+      "timestamp": "2026-10-16T19:08:05.284854+00:00",
       "label": "watch"
     },
     "KO": {
-      "score": 0.8151,
+      "score": 0.8967,
       "components_used": [
         "spread",
         "depth",
@@ -130,16 +130,16 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9893,
+        "spread": 0.9786,
         "depth": 1.0,
-        "abnormal_movement": 0.2734,
+        "abnormal_movement": 0.6123,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.260725+00:00",
+      "timestamp": "2026-10-16T19:08:05.285184+00:00",
       "label": "healthy"
     },
     "MCD": {
-      "score": 0.9803,
+      "score": 0.9323,
       "components_used": [
         "spread",
         "depth",
@@ -147,16 +147,16 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9425,
+        "spread": 0.9588,
         "depth": 1.0,
-        "abnormal_movement": 0.9902,
+        "abnormal_movement": 0.7788,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.260876+00:00",
+      "timestamp": "2026-10-16T19:08:05.285462+00:00",
       "label": "healthy"
     },
     "PYPL": {
-      "score": 0.8358,
+      "score": 0.7447,
       "components_used": [
         "spread",
         "depth",
@@ -164,13 +164,13 @@
         "weekend"
       ],
       "components_raw": {
-        "spread": 0.9826,
+        "spread": 0.9823,
         "depth": 1.0,
-        "abnormal_movement": 0.3639,
+        "abnormal_movement": 0.0,
         "weekend": 1.0
       },
-      "timestamp": "2026-10-16T15:46:28.261020+00:00",
-      "label": "healthy"
+      "timestamp": "2026-10-16T19:08:05.285723+00:00",
+      "label": "watch"
     }
   },
   "positions": {
@@ -251,131 +251,131 @@
   "baseline": {
     "NVDA": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.9951,
         0.9882,
         0.9228,
         0.913,
         0.9343,
-        0.9815
+        0.9815,
+        0.7472
       ]
     },
     "TSLA": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.9266,
         0.9539,
         0.883,
         0.7059,
         0.6822,
-        0.7417
+        0.7417,
+        0.6575
       ]
     },
     "AAPL": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.9046,
         0.9127,
         0.8558,
         0.7453,
         0.7869,
-        0.8468
+        0.8468,
+        0.7478
       ]
     },
     "AMZN": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.8159,
         0.9372,
         0.8792,
         0.8056,
         0.7983,
-        0.9397
+        0.9397,
+        0.7476
       ]
     },
     "GOOGL": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.7474,
         0.9842,
         0.945,
         0.9252,
         0.9091,
-        0.8142
+        0.8142,
+        0.7456
       ]
     },
     "SPY": {
       "points": 42,
-      "span_hours": 281.2,
+      "span_hours": 280.1,
       "trend": [
-        0.8826,
         0.8946,
         0.9264,
         0.938,
         0.9029,
-        0.8405
+        0.8405,
+        0.7492
       ]
     },
     "QQQ": {
       "points": 42,
-      "span_hours": 268.8,
+      "span_hours": 258.1,
       "trend": [
-        0.8799,
         0.8054,
         0.8743,
         0.9518,
         0.9052,
-        0.7487
+        0.7487,
+        0.7492
       ]
     },
     "KO": {
       "points": 42,
-      "span_hours": 312.4,
+      "span_hours": 308.6,
       "trend": [
-        0.9398,
         0.8989,
         0.9117,
         0.9434,
         0.8437,
-        0.8151
+        0.8151,
+        0.8967
       ]
     },
     "MCD": {
       "points": 42,
-      "span_hours": 352.2,
+      "span_hours": 352.0,
       "trend": [
-        0.8126,
         0.92,
         0.9253,
         0.8788,
         0.8776,
-        0.9803
+        0.9803,
+        0.9323
       ]
     },
     "PYPL": {
       "points": 42,
-      "span_hours": 352.2,
+      "span_hours": 352.0,
       "trend": [
-        0.9659,
         0.7448,
         0.8763,
         0.8621,
         0.8219,
-        0.8358
+        0.8358,
+        0.7447
       ]
     }
   },
   "portfolio_summary": {
     "total_usdt_cash": 0.0,
     "total_held_cost_basis_usd": 3000.0,
-    "total_held_market_value_usd": 3033.74,
+    "total_held_market_value_usd": 2990.86,
     "total_portfolio_value_cost_basis_usd": 3000.0,
-    "total_portfolio_value_market_usd": 3033.74,
+    "total_portfolio_value_market_usd": 2990.86,
     "valuation_status": "live",
     "held_stocks": [
       "NVDA",
@@ -399,12 +399,12 @@
   },
   "events_this_run": [
     {
-      "event_id": "eval_TSLA_20261016T154626228209",
-      "timestamp": "2026-10-16T15:46:26.228209+00:00",
+      "event_id": "eval_TSLA_20261016T190803232148",
+      "timestamp": "2026-10-16T19:08:03.232148+00:00",
       "type": "sell_hold_evaluation",
       "instrument": "TSLA",
-      "action_taken": "HOLD (blocked by hard rule - score 0.7417 >= SELL_CEILING 0.5; LLM not consulted)",
-      "score": 0.7417,
+      "action_taken": "HOLD (blocked by hard rule - score 0.6575 >= SELL_CEILING 0.5; LLM not consulted)",
+      "score": 0.6575,
       "score_label": "watch",
       "llm_reasoning": null,
       "llm_provider_used": null,
