@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-10-17T18:02:31.784696+00:00",
+  "timestamp": "2026-10-17T21:52:08.815389+00:00",
   "schema_version": 2,
   "scores": {
     "NVDA": {
@@ -143,8 +143,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.7472,
         0.8992,
+        null,
         null,
         null,
         null,
@@ -155,8 +155,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.6575,
         0.8669,
+        null,
         null,
         null,
         null,
@@ -167,8 +167,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.7478,
         0.8625,
+        null,
         null,
         null,
         null,
@@ -179,8 +179,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.7476,
         0.8311,
+        null,
         null,
         null,
         null,
@@ -191,8 +191,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.7456,
         0.9101,
+        null,
         null,
         null,
         null,
@@ -203,8 +203,8 @@
       "points": 42,
       "span_hours": 275.3,
       "trend": [
-        0.7492,
         0.8728,
+        null,
         null,
         null,
         null,
@@ -215,8 +215,8 @@
       "points": 42,
       "span_hours": 251.4,
       "trend": [
-        0.7492,
         0.7915,
+        null,
         null,
         null,
         null,
@@ -227,8 +227,8 @@
       "points": 42,
       "span_hours": 300.0,
       "trend": [
-        0.8967,
         0.6616,
+        null,
         null,
         null,
         null,
@@ -239,8 +239,8 @@
       "points": 42,
       "span_hours": 348.2,
       "trend": [
-        0.9323,
         0.8935,
+        null,
         null,
         null,
         null,
@@ -251,8 +251,8 @@
       "points": 42,
       "span_hours": 348.2,
       "trend": [
-        0.7447,
         0.8271,
+        null,
         null,
         null,
         null,
