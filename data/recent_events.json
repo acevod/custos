@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20261029T103358721005",
+    "timestamp": "2026-10-29T10:33:58.721005+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (blocked by hard rule - score 0.775 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.775,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20261029T033036804475",
     "timestamp": "2026-10-29T03:30:36.804475+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_QQQ_20261025T151558230493",
-    "timestamp": "2026-10-25T15:15:58.230493+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "QQQ",
-    "action_taken": "HOLD (blocked by hard rule - score 0.7959 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.7959,
-    "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
