@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20261030T033304059810",
+    "timestamp": "2026-10-30T03:33:04.059810+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (blocked by hard rule - score 0.7981 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.7981,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_MCD_20261029T234219608441",
     "timestamp": "2026-10-29T23:42:19.608441+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_KO_20261025T183720050560",
-    "timestamp": "2026-10-25T18:37:20.050560+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "KO",
-    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
-    "score": 0.608,
-    "score_label": "no_fresh_signal",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
