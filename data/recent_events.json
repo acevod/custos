@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_KO_20261102T210406270662",
+    "timestamp": "2026-11-02T21:04:06.270662+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "KO",
+    "action_taken": "HOLD (awaiting confirmation - score below SELL_CEILING 0.5 must hold for 2 consecutive runs)",
+    "score": 0.4104,
+    "score_label": "red_flag",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_KO_20261102T115017146233",
     "timestamp": "2026-11-02T11:50:17.146233+00:00",
     "type": "sell_hold_evaluation",
@@ -220,18 +232,6 @@
     "timestamp": "2026-10-31T16:30:48.699750+00:00",
     "type": "evaluation_skipped",
     "instrument": "PYPL",
-    "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
-    "score": null,
-    "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_MCD_20261031T163048699750",
-    "timestamp": "2026-10-31T16:30:48.699750+00:00",
-    "type": "evaluation_skipped",
-    "instrument": "MCD",
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
