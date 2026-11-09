@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_NVDA_20261109T121923419681",
+    "timestamp": "2026-11-09T12:19:23.419681+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "NVDA",
+    "action_taken": "HOLD (blocked by hard rule - score 0.8415 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.8415,
+    "score_label": "healthy",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20261109T034115156375",
     "timestamp": "2026-11-09T03:41:15.156375+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_TSLA_20261107T104731199986",
-    "timestamp": "2026-11-07T10:47:31.199986+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "TSLA",
-    "action_taken": "HOLD (blocked by hard rule - score 0.6815 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.6815,
-    "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
