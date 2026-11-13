@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AMZN_20261113T114234955782",
+    "timestamp": "2026-11-13T11:42:34.955782+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AMZN",
+    "action_taken": "HOLD (blocked by hard rule - score 0.7015 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.7015,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_AMZN_20261113T004757543976",
     "timestamp": "2026-11-13T00:47:57.543976+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_KO_20261108T105328011290",
-    "timestamp": "2026-11-08T10:53:28.011290+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "KO",
-    "action_taken": "HOLD (warming up - only 2/4 components available, need 4)",
-    "score": 0.6082,
-    "score_label": "no_fresh_signal",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
