@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_MCD_20261117T171258972732",
+    "timestamp": "2026-11-17T17:12:58.972732+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "MCD",
+    "action_taken": "HOLD (blocked by hard rule - score 0.8991 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.8991,
+    "score_label": "healthy",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_GOOGL_20261117T054328874042",
     "timestamp": "2026-11-17T05:43:28.874042+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_AMZN_20261114T172823382256",
-    "timestamp": "2026-11-14T17:28:23.382256+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "AMZN",
-    "action_taken": "HOLD (blocked by hard rule - score 0.7825 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.7825,
-    "score_label": "watch",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
