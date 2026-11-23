@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_AAPL_20261123T193914706082",
+    "timestamp": "2026-11-23T19:39:14.706082+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "AAPL",
+    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
+    "score": 0.932,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_PYPL_20261123T044525029164",
     "timestamp": "2026-11-23T04:45:25.029164+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_PYPL_20261120T222613334413",
-    "timestamp": "2026-11-20T22:26:13.334413+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "PYPL",
-    "action_taken": "HOLD (awaiting confirmation - score below SELL_CEILING 0.5 must hold for 2 consecutive runs)",
-    "score": 0.3623,
-    "score_label": "red_flag",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
