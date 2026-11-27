@@ -1,5 +1,17 @@
 [
   {
+    "event_id": "eval_PYPL_20261127T023307956520",
+    "timestamp": "2026-11-27T02:33:07.956520+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "PYPL",
+    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
+    "score": 0.6518,
+    "score_label": "warming_up",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_SPY_20261126T175827294247",
     "timestamp": "2026-11-26T17:58:27.294247+00:00",
     "type": "sell_hold_evaluation",
@@ -223,18 +235,6 @@
     "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
     "score": null,
     "score_label": "unknown",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_KO_20261122T040330055504",
-    "timestamp": "2026-11-22T04:03:30.055504+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "KO",
-    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
-    "score": 0.7655,
-    "score_label": "warming_up",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
