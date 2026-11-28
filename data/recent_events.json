@@ -1,5 +1,41 @@
 [
   {
+    "event_id": "eval_SPY_20261128T162918276329",
+    "timestamp": "2026-11-28T16:29:18.276329+00:00",
+    "type": "sell_hold_evaluation",
+    "instrument": "SPY",
+    "action_taken": "HOLD (blocked by hard rule - score 0.7143 >= SELL_CEILING 0.5; LLM not consulted)",
+    "score": 0.7143,
+    "score_label": "watch",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
+    "event_id": "eval_PYPL_20261128T162918276329",
+    "timestamp": "2026-11-28T16:29:18.276329+00:00",
+    "type": "evaluation_skipped",
+    "instrument": "PYPL",
+    "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
+    "score": null,
+    "score_label": "unknown",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
+    "event_id": "eval_MCD_20261128T162918276329",
+    "timestamp": "2026-11-28T16:29:18.276329+00:00",
+    "type": "evaluation_skipped",
+    "instrument": "MCD",
+    "action_taken": "SKIPPED (market data unavailable - fetch status: error)",
+    "score": null,
+    "score_label": "unknown",
+    "llm_reasoning": null,
+    "llm_provider_used": null,
+    "llm_attempts": []
+  },
+  {
     "event_id": "eval_SPY_20261128T053130373316",
     "timestamp": "2026-11-28T05:31:30.373316+00:00",
     "type": "sell_hold_evaluation",
@@ -199,42 +235,6 @@
     "action_taken": "HOLD (blocked by hard rule - score 0.7013 >= SELL_CEILING 0.5; LLM not consulted)",
     "score": 0.7013,
     "score_label": "watch",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_TSLA_20261124T191245315626",
-    "timestamp": "2026-11-24T19:12:45.315626+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "TSLA",
-    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
-    "score": 0.9917,
-    "score_label": "warming_up",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_PYPL_20261124T043107313643",
-    "timestamp": "2026-11-24T04:31:07.313643+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "PYPL",
-    "action_taken": "HOLD (blocked by hard rule - score 0.6591 >= SELL_CEILING 0.5; LLM not consulted)",
-    "score": 0.6591,
-    "score_label": "watch",
-    "llm_reasoning": null,
-    "llm_provider_used": null,
-    "llm_attempts": []
-  },
-  {
-    "event_id": "eval_AAPL_20261123T193914706082",
-    "timestamp": "2026-11-23T19:39:14.706082+00:00",
-    "type": "sell_hold_evaluation",
-    "instrument": "AAPL",
-    "action_taken": "HOLD (warming up - only 3/4 components available, need 4)",
-    "score": 0.932,
-    "score_label": "warming_up",
     "llm_reasoning": null,
     "llm_provider_used": null,
     "llm_attempts": []
